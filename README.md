@@ -122,9 +122,21 @@
 
 ### ToDos
 
-
+- [ ]  Auf MobileNet umsteigen
+- [ ] Erstes Modell implementieren
+  - [ ] Multi Task Learning  (3 Top Modelle auf Mobile Net Basis)
+  - [ ] Erste Hyperparameter
+- [ ] Modell Varianten/Vorgehensweise überlegen
+- [ ] Datenstruktur/Ordnerstruktur überlegen
+- [ ] Testdaten/Vorgehensweise überlegen
 
 ### Notizen
+
+#### Präsentation
+
+- Mehr Anwendungsbeispiele
+- Positive und negative Testbeispiele
+- Trainingsdatensatz näher erläutern (Welche positiven und negativen Daten existieren, etc ..)
 
 #### Sources
 

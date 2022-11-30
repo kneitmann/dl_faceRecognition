@@ -83,14 +83,14 @@
 
 - [x] ResNet50 Modell laden
 - [x] Transfer Learning auf neues Modell
-- [ ] Programmargumente, wenn man altes Modell laden möchte?
-- [ ] Callback, um Modell zu speichern?
-- [ ] Code präsentabel und verständlich gestalten
-- [ ] Modell trainieren
-- [ ] Modell testen
-- [ ] Overfitting vermeiden
-- [ ] Ergebnisse auswerten
-- [ ] Präsentation erstellen
+- [x] Programmargumente, wenn man altes Modell laden möchte?
+- [x] Callback, um Modell zu speichern?
+- [x] Code präsentabel und verständlich gestalten
+- [x] Modell trainieren
+- [x] Modell testen
+- [x] Overfitting vermeiden
+- [x] Ergebnisse auswerten
+- [x] Präsentation erstellen
 
 
 
@@ -122,12 +122,12 @@
 
 ### ToDos
 
-- [ ]  Auf MobileNet umsteigen
+- [x]  Auf MobileNet umsteigen
 - [ ] Erstes Modell implementieren
   - [ ] Multi Task Learning  (3 Top Modelle auf Mobile Net Basis)
   - [ ] Erste Hyperparameter
 - [ ] Modell Varianten/Vorgehensweise überlegen
-- [ ] Datenstruktur/Ordnerstruktur überlegen
+- [x] Datenstruktur/Ordnerstruktur überlegen
 - [ ] Testdaten/Vorgehensweise überlegen
 
 
@@ -145,6 +145,8 @@
 - [An Overview of Multi-Task Learning for Deep Learning (ruder.io)](https://ruder.io/multi-task/)
 - [2009.09796.pdf (arxiv.org)](https://arxiv.org/pdf/2009.09796.pdf)
 - [Multi-Task Learning for Classification with Keras | by Javier Martínez Ojeda | Towards Data Science](https://towardsdatascience.com/multi-task-learning-for-computer-vision-classification-with-keras-36c52e6243d2)
+- [Multitask learning in TensorFlow with the Head API | by Simone Scardapane | Towards Data Science](https://towardsdatascience.com/multitask-learning-in-tensorflow-with-the-head-api-68f2717019df)
+- [The Functional API (keras.io)](https://keras.io/guides/functional_api/#shared-layers)
 
 
 

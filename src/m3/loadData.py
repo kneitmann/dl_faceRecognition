@@ -28,7 +28,7 @@ def createImageDataset(dir, img_size):
 
     for batch in ds:
         for data in batch:
-            images.append(np.array(data))
+            images.append(data)
 
     for dirpath, dirs, files in os.walk(dir): 
         for filename in files:

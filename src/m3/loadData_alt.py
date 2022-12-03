@@ -17,8 +17,10 @@ def get_label(file_path):
      # If the label is a number, convert it into integer
     #label = list(map(lambda f: int(f) if is_number(f) else f, filename.split('_')))
     filename_split = filename.split('_')
-    #return label
-    return int(filename_split[0]), int(filename_split[1]), int(filename_split[2])
+    face = int(filename_split[0])
+    mask = int(filename_split[1])
+    age = int(filename_split[2])
+    return face if face >= 0 else 0, mask if mask >= 0 else 0, age if age >= 0 else 0
 
 def load_img(img_path, img_size):
     img = tf.io.read_file(img_path)

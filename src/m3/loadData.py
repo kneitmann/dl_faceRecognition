@@ -17,8 +17,10 @@ def get_label(file_path):
      # If the label is a number, convert it into integer
     #label = list(map(lambda f: int(f) if is_number(f) else f, filename.split('_')))
     filename_split = filename.split('_')
-    #return label
-    return int(filename_split[0]), int(filename_split[1]), int(filename_split[2])
+    face = int(filename_split[0])
+    mask = int(filename_split[1])
+    age = int(filename_split[2])
+    return face if face >= 0 else 0, mask if mask >= 0 else 0, age if age >= 0 else 0
 
 def load_img(img_path, img_size):
     img = keras.utils.load_img(
@@ -71,4 +73,4 @@ def createDataset(dir, img_size):
     #np_labels = np.array(labels)
     #np_images = np.array(images)
     #return np_images, np_labels[:, 0], np_labels[:, 1], np_labels[:, 2]
-    return images, face_labels, mask_labels, age_labels
+    return np.array(images), np.array(face_labels), np.array(mask_labels), np.array(age_labels)

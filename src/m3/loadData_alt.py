@@ -21,15 +21,11 @@ def get_label(file_path):
     return int(filename_split[0]), int(filename_split[1]), int(filename_split[2])
 
 def load_img(img_path, img_size):
-    img = keras.utils.load_img(
-                img_path,
-                grayscale=False,
-                color_mode="rgb",
-                target_size=(img_size),
-                interpolation="bilinear",
-                keep_aspect_ratio=True,
-            )
-    return keras.utils.img_to_array(img)
+    img = tf.io.read_file(img_path)
+    # Convert the compressed string to a 3D uint8 tensor
+    img = tf.io.decode_jpeg(img, channels=3)
+    # Resize the image to the desired size
+    return tf.image.resize(img, img_size)
 
 def createDataframe(dir):
     labels = []
@@ -71,4 +67,4 @@ def createDataset(dir, img_size):
     #np_labels = np.array(labels)
     #np_images = np.array(images)
     #return np_images, np_labels[:, 0], np_labels[:, 1], np_labels[:, 2]
-    return images, face_labels, mask_labels, age_labels
+    return tf.convert_to_tensor(images), tf.convert_to_tensor(face_labels), tf.convert_to_tensor(mask_labels), tf.convert_to_tensor(age_labels)

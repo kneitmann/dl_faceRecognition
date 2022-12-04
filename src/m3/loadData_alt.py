@@ -13,13 +13,16 @@ def is_number(n):
     return True
 
 def get_label(file_path):
-    filename = file_path.rstrip('.jpg')
-     # If the label is a number, convert it into integer
-    #label = list(map(lambda f: int(f) if is_number(f) else f, filename.split('_')))
-    filename_split = filename.split('_')
+    filepath_split = tf.strings.split(file_path, '/')
+    filename = filepath_split[len(filepath_split)-1]
+    filename = tf.strings.split(filename, '.')[0]
+
+    # If the label is a number, convert it into integer
+    filename_split = tf.strings.split(filename, '_')
     face = int(filename_split[0])
     mask = int(filename_split[1])
     age = int(filename_split[2])
+
     return face if face >= 0 else 0, mask if mask >= 0 else 0, age if age >= 0 else 0
 
 def load_img(img_path, img_size):
@@ -29,44 +32,28 @@ def load_img(img_path, img_size):
     # Resize the image to the desired size
     return tf.image.resize(img, img_size)
 
-def createDataframe(dir):
-    labels = []
+def process_path(file_path):
+    label = get_label(file_path)
+    # Load the raw data from the file as a string
+    img = load_img(file_path, (156, 156))
+
+    return img, label
+
+def configure_for_performance(ds):
+  ds = ds.cache()
+  ds = ds.shuffle(buffer_size=1000)
+  ds = ds.batch(32)
+  ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+  return ds
+
+def createDataset(dir, img_size):
     image_paths = []
 
     for dirpath, dirs, files in os.walk(dir): 
         for filename in files:
-            image_path = os.path.join(dirpath, filename)
-            label = get_label(filename)
-            image_paths.append(image_path)
-            labels.append(label)
+            image_paths.append(os.path.join(dirpath, filename).replace('\\', '/'))
 
-    np_labels = np.array(labels)
-    df = pd.DataFrame()
-    df['image'], df['face'], df['mask'], df['age'] = image_paths, np_labels[:, 0], np_labels[:, 1], np_labels[:, 2]
-
-    return df
-
-def createDataset(dir, img_size):
-    #labels = []
-    face_labels = []
-    mask_labels = []
-    age_labels = []
-    images = []
-
-    for dirpath, dirs, files in os.walk(dir): 
-        for filename in files:
-            file_path = os.path.join(dirpath, filename)
-            #label = get_label(filename)
-            face, mask, age = get_label(filename)
-            face_labels.append(face)
-            mask_labels.append(mask)
-            age_labels.append(age)
-
-            img = load_img(file_path, img_size)
-            images.append(img)
-            #labels.append(label)
-
-    #np_labels = np.array(labels)
-    #np_images = np.array(images)
-    #return np_images, np_labels[:, 0], np_labels[:, 1], np_labels[:, 2]
-    return tf.convert_to_tensor(images), tf.convert_to_tensor(face_labels), tf.convert_to_tensor(mask_labels), tf.convert_to_tensor(age_labels)
+    image_paths = tf.data.Dataset.from_tensor_slices(image_paths)
+    ds = image_paths.map(process_path, num_parallel_calls=tf.data.AUTOTUNE)
+    
+    return configure_for_performance(ds)

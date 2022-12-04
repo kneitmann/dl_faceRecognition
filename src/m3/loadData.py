@@ -15,11 +15,11 @@ def is_number(n):
 def get_label(file_path):
     filename = file_path.rstrip('.jpg')
      # If the label is a number, convert it into integer
-    #label = list(map(lambda f: int(f) if is_number(f) else f, filename.split('_')))
     filename_split = filename.split('_')
     face = int(filename_split[0])
     mask = int(filename_split[1])
     age = int(filename_split[2])
+
     return face if face >= 0 else 0, mask if mask >= 0 else 0, age if age >= 0 else 0
 
 def load_img(img_path, img_size):
@@ -34,24 +34,26 @@ def load_img(img_path, img_size):
     return keras.utils.img_to_array(img)
 
 def createDataframe(dir):
-    labels = []
     image_paths = []
+    face_labels = []
+    mask_labels = []
+    age_labels = []
 
     for dirpath, dirs, files in os.walk(dir): 
         for filename in files:
             image_path = os.path.join(dirpath, filename)
-            label = get_label(filename)
+            face, mask, age = get_label(filename)
             image_paths.append(image_path)
-            labels.append(label)
+            face_labels.append(face)
+            face_labels.append(mask)
+            face_labels.append(age)
 
-    np_labels = np.array(labels)
     df = pd.DataFrame()
-    df['image'], df['face'], df['mask'], df['age'] = image_paths, np_labels[:, 0], np_labels[:, 1], np_labels[:, 2]
+    df['image'], df['face'], df['mask'], df['age'] = image_paths, face_labels, mask_labels, age_labels
 
     return df
 
 def createDataset(dir, img_size):
-    #labels = []
     face_labels = []
     mask_labels = []
     age_labels = []
@@ -60,7 +62,6 @@ def createDataset(dir, img_size):
     for dirpath, dirs, files in os.walk(dir): 
         for filename in files:
             file_path = os.path.join(dirpath, filename)
-            #label = get_label(filename)
             face, mask, age = get_label(filename)
             face_labels.append(face)
             mask_labels.append(mask)
@@ -68,9 +69,5 @@ def createDataset(dir, img_size):
 
             img = load_img(file_path, img_size)
             images.append(img)
-            #labels.append(label)
 
-    #np_labels = np.array(labels)
-    #np_images = np.array(images)
-    #return np_images, np_labels[:, 0], np_labels[:, 1], np_labels[:, 2]
     return np.array(images), np.array(face_labels), np.array(mask_labels), np.array(age_labels)

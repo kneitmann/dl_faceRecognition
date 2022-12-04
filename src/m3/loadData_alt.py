@@ -46,14 +46,20 @@ def configure_for_performance(ds):
   ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
   return ds
 
-def createDataset(dir, img_size):
+def createDataset(dir, validation_split):
     image_paths = []
 
     for dirpath, dirs, files in os.walk(dir): 
         for filename in files:
             image_paths.append(os.path.join(dirpath, filename).replace('\\', '/'))
 
+    val_data_size = int(len(image_paths) * validation_split)
+
     image_paths = tf.data.Dataset.from_tensor_slices(image_paths)
-    ds = image_paths.map(process_path, num_parallel_calls=tf.data.AUTOTUNE)
+    train_paths = image_paths.skip(val_data_size)
+    val_paths = image_paths.take(val_data_size)
+
+    train_ds = train_paths.map(process_path, num_parallel_calls=tf.data.AUTOTUNE)
+    val_ds = val_paths.map(process_path, num_parallel_calls=tf.data.AUTOTUNE)
     
-    return configure_for_performance(ds)
+    return configure_for_performance(train_ds), configure_for_performance(val_ds)

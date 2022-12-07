@@ -22,10 +22,8 @@ def get_label(file_path):
     face = int(filename_split[0])
     mask = int(filename_split[1])
     age = int(filename_split[2])
-    age = age if age >= 0 else 0
-    age = tf.one_hot(age, 120)
 
-    return face if face >= 0 else 0, mask if mask >= 0 else 0, age
+    return face, mask, age
 
 def load_img(img_path, img_size):
     img = tf.io.read_file(img_path)

@@ -31,6 +31,8 @@ def load_img(img_path, img_size):
                 interpolation="bilinear",
                 keep_aspect_ratio=True,
             )
+    img = keras.applications.mobilenet.preprocess_input(img)
+    
     return keras.utils.img_to_array(img)
 
 def createDataframe(dir):

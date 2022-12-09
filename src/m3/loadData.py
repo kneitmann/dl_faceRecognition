@@ -20,7 +20,7 @@ def get_label(file_path):
     mask = int(filename_split[1])
     age = int(filename_split[2])
 
-    return face if face >= 0 else 0, mask if mask >= 0 else 0, age if age >= 0 else 0
+    return face, mask, age
 
 def load_img(img_path, img_size):
     img = keras.utils.load_img(
@@ -31,9 +31,11 @@ def load_img(img_path, img_size):
                 interpolation="bilinear",
                 keep_aspect_ratio=True,
             )
+
+    img = keras.utils.img_to_array(img)
     img = keras.applications.mobilenet.preprocess_input(img)
     
-    return keras.utils.img_to_array(img)
+    return img
 
 def createDataframe(dir):
     image_paths = []
@@ -71,5 +73,8 @@ def createDataset(dir, img_size):
 
             img = load_img(file_path, img_size)
             images.append(img)
+
+    #assert len(face_labels) == len(mask_labels) == len(age_labels) == len(images)
+    #p = np.random.permutation(len(face_labels))
 
     return np.array(images), np.array(face_labels), np.array(mask_labels), np.array(age_labels)

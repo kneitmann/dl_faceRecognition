@@ -66,7 +66,7 @@ def process_path(file_path):
 
 def configure_for_performance(ds, batch_size):
   ds = ds.cache()
-  ds = ds.shuffle(300)
+  ds = ds.shuffle(300, seed=123)
   ds = ds.batch(batch_size)
   ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
   return ds
@@ -81,7 +81,6 @@ def createDataset(dir, batch_size, validation_split):
     val_data_size = int(len(image_paths) * validation_split)
 
     image_paths = tf.data.Dataset.from_tensor_slices(image_paths)
-    image_paths = image_paths.shuffle(2000)
     train_paths = image_paths.skip(val_data_size)
     val_paths = image_paths.take(val_data_size)
 

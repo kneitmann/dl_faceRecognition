@@ -24,8 +24,8 @@ def get_label(file_path):
     mask = int(filename_split[1])
     age = int(filename_split[2])
 
-    # if age < 0 or age > 120:
-    #     age = 121
+    if age < 0 or age > 120:
+        age = 121
 
     # if age >= 0 & age <= 13:
     #     age = 0
@@ -44,7 +44,7 @@ def get_label(file_path):
     # else:
     #     age = 7
 
-    return face, mask, age
+    return face, mask, tf.one_hot(age, 122)
 
 def load_img(img_path, img_size):
     img = tf.io.read_file(img_path)
@@ -66,7 +66,7 @@ def process_path(file_path):
 
 def configure_for_performance(ds, batch_size):
   ds = ds.cache()
-  ds = ds.shuffle(300, seed=123)
+  ds = ds.shuffle(10000, seed=123)
   ds = ds.batch(batch_size)
   ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
   return ds

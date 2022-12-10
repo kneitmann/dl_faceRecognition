@@ -24,8 +24,8 @@ def get_label(file_path):
     mask = int(filename_split[1])
     age = int(filename_split[2])
 
-    if age < 0 or age > 120:
-        age = 121
+    # if age < 0 or age > 120:
+    #     age = 121
 
     # if age >= 0 & age <= 13:
     #     age = 0

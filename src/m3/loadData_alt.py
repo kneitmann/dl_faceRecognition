@@ -24,27 +24,35 @@ def get_label(file_path):
     mask = int(filename_split[1])
     age = int(filename_split[2])
 
+
+    # if(use_age_groups):
+    #     if age >= 0 & age <= 13:
+    #         age = 0
+    #     elif age > 13 & age <= 19:
+    #         age = 1
+    #     elif age > 19 & age <= 29:
+    #         age = 2
+    #     elif age > 29 & age <= 39:
+    #         age = 3
+    #     elif age > 39 & age <= 49:
+    #         age = 4
+    #     elif age > 49 & age <= 59:
+    #         age = 5
+    #     elif age > 59:
+    #         age = 6
+    #     else:
+    #         age = 7
+    # else:
+    #     if age < 0 or age > 120:
+    #         age = 121
+
+    # num_classes = 122 if use_age_groups else 8
+
     if age < 0 or age > 120:
         age = 121
+    num_classes = 122
 
-    # if age >= 0 & age <= 13:
-    #     age = 0
-    # elif age > 13 & age <= 19:
-    #     age = 1
-    # elif age > 19 & age <= 29:
-    #     age = 2
-    # elif age > 29 & age <= 39:
-    #     age = 3
-    # elif age > 39 & age <= 49:
-    #     age = 4
-    # elif age > 49 & age <= 59:
-    #     age = 5
-    # elif age > 59:
-    #     age = 6
-    # else:
-    #     age = 7
-
-    return face, mask, tf.one_hot(age, 122)
+    return face, mask, tf.one_hot(age, num_classes)
 
 def load_img(img_path, img_size):
     img = tf.io.read_file(img_path)

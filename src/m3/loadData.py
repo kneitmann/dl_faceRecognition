@@ -1,4 +1,3 @@
-import fnmatch
 import os
 import pandas as pd
 import numpy as np
@@ -12,14 +11,48 @@ def is_number(n):
         return False
     return True
 
-def get_label(file_path):
+def get_label(file_path, for_regression=False, use_age_groups=False):
     filename = file_path.rstrip('.jpg')
      # If the label is a number, convert it into integer
     filename_split = filename.split('_')
     face = int(filename_split[0])
     mask = int(filename_split[1])
     age = int(filename_split[2])
+    
+    if use_age_groups:
+        if age >= 0 & age <= 13:
+            age = 0
+        elif age > 13 & age <= 19:
+            age = 1
+        elif age > 19 & age <= 29:
+            age = 2
+        elif age > 29 & age <= 39:
+            age = 3
+        elif age > 39 & age <= 49:
+            age = 4
+        elif age > 49 & age <= 59:
+            age = 5
+        elif age > 59:
+            age = 6
+        else:
+            age = 7
+    else:
+        if age < 0 or age > 120:
+            age = 121
 
+    if not for_regression:
+        # face_onehot = np.zeros(2)
+        # face_onehot[face] = 1.0 # One-hot array
+        # face = face_onehot
+
+        # mask_onehot = np.zeros(2)
+        # mask_onehot[mask] = 1.0 # One-hot array
+        # mask = mask_onehot
+        
+        age_onehot = np.zeros(122)
+        age_onehot[age] = 1.0 # One-hot array
+        age = age_onehot
+    
     return face, mask, age
 
 def load_img(img_path, img_size):
@@ -57,7 +90,10 @@ def createDataframe(dir):
 
     return df
 
-def createDataset(dir, img_size):
+def load_images(dir):
+    return
+
+def createDataset(dir, img_size, for_regression=False, use_age_groups=False):
     face_labels = []
     mask_labels = []
     age_labels = []
@@ -66,15 +102,12 @@ def createDataset(dir, img_size):
     for dirpath, dirs, files in os.walk(dir): 
         for filename in files:
             file_path = os.path.join(dirpath, filename)
-            face, mask, age = get_label(filename)
+            face, mask, age = get_label(filename, for_regression, use_age_groups)
             face_labels.append(face)
             mask_labels.append(mask)
             age_labels.append(age)
 
             img = load_img(file_path, img_size)
             images.append(img)
-
-    #assert len(face_labels) == len(mask_labels) == len(age_labels) == len(images)
-    #p = np.random.permutation(len(face_labels))
 
     return np.array(images), np.array(face_labels), np.array(mask_labels), np.array(age_labels)

@@ -13,7 +13,7 @@ def is_number(n):
         return False
     return True
 
-def get_label(file_path):
+def get_label(file_path, for_regression=False, use_age_groups=False):
     filepath_split = tf.strings.split(file_path, '/')
     filename = filepath_split[len(filepath_split)-1]
     filename = tf.strings.split(filename, '.')[0]
@@ -24,35 +24,33 @@ def get_label(file_path):
     mask = int(filename_split[1])
     age = int(filename_split[2])
 
+    if(use_age_groups):
+        if age >= 0 & age <= 13:
+            age = 0
+        elif age > 13 & age <= 19:
+            age = 1
+        elif age > 19 & age <= 29:
+            age = 2
+        elif age > 29 & age <= 39:
+            age = 3
+        elif age > 39 & age <= 49:
+            age = 4
+        elif age > 49 & age <= 59:
+            age = 5
+        elif age > 59:
+            age = 6
+        else:
+            age = 7
+    else:
+        if age < 0 or age > 120:
+            age = 121
 
-    # if(use_age_groups):
-    #     if age >= 0 & age <= 13:
-    #         age = 0
-    #     elif age > 13 & age <= 19:
-    #         age = 1
-    #     elif age > 19 & age <= 29:
-    #         age = 2
-    #     elif age > 29 & age <= 39:
-    #         age = 3
-    #     elif age > 39 & age <= 49:
-    #         age = 4
-    #     elif age > 49 & age <= 59:
-    #         age = 5
-    #     elif age > 59:
-    #         age = 6
-    #     else:
-    #         age = 7
-    # else:
-    #     if age < 0 or age > 120:
-    #         age = 121
+    if not for_regression:
+        # face = tf.one_hot(face, 2)
+        # mask = tf.one_hot(mask, 2)
+        age = tf.one_hot(age, 122)
 
-    # num_classes = 122 if use_age_groups else 8
-
-    if age < 0 or age > 120:
-        age = 121
-    num_classes = 122
-
-    return face, mask, tf.one_hot(age, num_classes)
+    return face, mask, age
 
 def load_img(img_path, img_size):
     img = tf.io.read_file(img_path)
@@ -65,10 +63,10 @@ def load_img(img_path, img_size):
 
     return img
 
-def process_path(file_path):
-    label = get_label(file_path)
+def process_path(file_path, img_size, for_regression=False, use_age_groups=False):
+    label = get_label(file_path, for_regression, use_age_groups)
     # Load the raw data from the file as a string
-    img = load_img(file_path, (160, 160))
+    img = load_img(file_path, img_size)
 
     return img, label
 
@@ -79,7 +77,7 @@ def configure_for_performance(ds, batch_size):
   ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
   return ds
 
-def createDataset(dir, batch_size, validation_split):
+def createDataset(dir, img_size, batch_size, validation_split, for_regression=False, use_age_groups=False):
     image_paths = []
 
     for dirpath, dirs, files in os.walk(dir): 
@@ -92,7 +90,8 @@ def createDataset(dir, batch_size, validation_split):
     train_paths = image_paths.skip(val_data_size)
     val_paths = image_paths.take(val_data_size)
 
-    train_ds = train_paths.map(process_path, num_parallel_calls=tf.data.AUTOTUNE)
-    val_ds = val_paths.map(process_path, num_parallel_calls=tf.data.AUTOTUNE)
+    process_path_fn = lambda path: process_path(path, img_size, for_regression, use_age_groups)
+    train_ds = train_paths.map(process_path_fn, num_parallel_calls=tf.data.AUTOTUNE)
+    val_ds = val_paths.map(process_path_fn, num_parallel_calls=tf.data.AUTOTUNE)
     
     return configure_for_performance(train_ds, batch_size), configure_for_performance(val_ds, batch_size)

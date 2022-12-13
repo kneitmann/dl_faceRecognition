@@ -24,36 +24,34 @@ def get_label(file_path, for_regression=False, use_age_groups=False):
     mask = int(filename_split[1])
     age = int(filename_split[2])
 
-    if(use_age_groups):
-        if age >= 0 & age <= 13:
+    num_classes = 122
+    
+    if use_age_groups:
+        num_classes = 8
+        if age >= 0 and age <= 13:
             age = 0
-        elif age > 13 & age <= 19:
+        elif age > 13 and age <= 19:
             age = 1
-        elif age > 19 & age <= 29:
+        elif age > 19 and age <= 29:
             age = 2
-        elif age > 29 & age <= 39:
+        elif age > 29 and age <= 39:
             age = 3
-        elif age > 39 & age <= 49:
+        elif age > 39 and age <= 49:
             age = 4
-        elif age > 49 & age <= 59:
+        elif age > 49 and age <= 59:
             age = 5
         elif age > 59:
             age = 6
         else:
             age = 7
-
-        if not for_regression:
-            # face = tf.one_hot(face, 2)
-            # mask = tf.one_hot(mask, 2)
-            age = tf.one_hot(age, 8)
     else:
         if age < 0 or age > 120:
             age = 121
 
-        if not for_regression:
-            # face = tf.one_hot(face, 2)
-            # mask = tf.one_hot(mask, 2)
-            age = tf.one_hot(age, 122)
+    if not for_regression:
+        # face = tf.one_hot(face, 2)
+        # mask = tf.one_hot(mask, 2)
+        age = tf.one_hot(age, num_classes)
 
     return face, mask, age
 
@@ -83,18 +81,24 @@ def configure_for_performance(ds, batch_size):
   return ds
 
 def createDataset(dir, img_size, batch_size, validation_split, for_regression=False, use_age_groups=False):
+    # Getting all image paths
     image_paths = []
-
     for dirpath, dirs, files in os.walk(dir): 
         for filename in files:
             image_paths.append(os.path.join(dirpath, filename).replace('\\', '/'))
 
-    val_data_size = int(len(image_paths) * validation_split)
 
+    # Shuffle image paths
+    np.random.seed(42)
+    np.random.shuffle(image_paths)
+
+    # Splitting into training and validation dataset
     image_paths = tf.data.Dataset.from_tensor_slices(image_paths)
+    val_data_size = int(len(image_paths) * validation_split)
     train_paths = image_paths.skip(val_data_size)
     val_paths = image_paths.take(val_data_size)
 
+    # Processing the image paths
     process_path_fn = lambda path: process_path(path, img_size, for_regression, use_age_groups)
     train_ds = train_paths.map(process_path_fn, num_parallel_calls=tf.data.AUTOTUNE)
     val_ds = val_paths.map(process_path_fn, num_parallel_calls=tf.data.AUTOTUNE)

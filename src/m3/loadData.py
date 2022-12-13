@@ -19,18 +19,21 @@ def get_label(file_path, for_regression=False, use_age_groups=False):
     mask = int(filename_split[1])
     age = int(filename_split[2])
     
+    num_classes = 122
+
     if use_age_groups:
-        if age >= 0 & age <= 13:
+        num_classes = 8
+        if age >= 0 and age <= 13:
             age = 0
-        elif age > 13 & age <= 19:
+        elif age > 13 and age <= 19:
             age = 1
-        elif age > 19 & age <= 29:
+        elif age > 19 and age <= 29:
             age = 2
-        elif age > 29 & age <= 39:
+        elif age > 29 and age <= 39:
             age = 3
-        elif age > 39 & age <= 49:
+        elif age > 39 and age <= 49:
             age = 4
-        elif age > 49 & age <= 59:
+        elif age > 49 and age <= 59:
             age = 5
         elif age > 59:
             age = 6
@@ -49,7 +52,7 @@ def get_label(file_path, for_regression=False, use_age_groups=False):
         # mask_onehot[mask] = 1.0 # One-hot array
         # mask = mask_onehot
 
-        age_onehot = np.zeros(122)
+        age_onehot = np.zeros(num_classes)
         age_onehot[age] = 1.0 # One-hot array
         age = age_onehot
     

@@ -41,14 +41,19 @@ def get_label(file_path, for_regression=False, use_age_groups=False):
             age = 6
         else:
             age = 7
+
+        if not for_regression:
+            # face = tf.one_hot(face, 2)
+            # mask = tf.one_hot(mask, 2)
+            age = tf.one_hot(age, 8)
     else:
         if age < 0 or age > 120:
             age = 121
 
-    if not for_regression:
-        # face = tf.one_hot(face, 2)
-        # mask = tf.one_hot(mask, 2)
-        age = tf.one_hot(age, 122)
+        if not for_regression:
+            # face = tf.one_hot(face, 2)
+            # mask = tf.one_hot(mask, 2)
+            age = tf.one_hot(age, 122)
 
     return face, mask, age
 
@@ -59,7 +64,7 @@ def load_img(img_path, img_size):
     # Resize the image to the desired size
     img = tf.image.resize(img, img_size)
     # Preprocess image
-    img = keras.applications.mobilenet.preprocess_input(img)
+    img = keras.applications.resnet.preprocess_input(img)
 
     return img
 

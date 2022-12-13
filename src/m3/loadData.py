@@ -48,7 +48,7 @@ def get_label(file_path, for_regression=False, use_age_groups=False):
         # mask_onehot = np.zeros(2)
         # mask_onehot[mask] = 1.0 # One-hot array
         # mask = mask_onehot
-        
+
         age_onehot = np.zeros(122)
         age_onehot[age] = 1.0 # One-hot array
         age = age_onehot
@@ -66,7 +66,7 @@ def load_img(img_path, img_size):
             )
 
     img = keras.utils.img_to_array(img)
-    img = keras.applications.mobilenet.preprocess_input(img)
+    img = keras.applications.resnet.preprocess_input(img)
     
     return img
 
@@ -109,5 +109,16 @@ def createDataset(dir, img_size, for_regression=False, use_age_groups=False):
 
             img = load_img(file_path, img_size)
             images.append(img)
+
+    assert len(images) == len(face_labels) == len(mask_labels) == len(age_labels)
+
+    np.random.seed(42)
+    np.random.shuffle(images)
+    np.random.seed(42)
+    np.random.shuffle(face_labels)
+    np.random.seed(42)
+    np.random.shuffle(mask_labels)
+    np.random.seed(42)
+    np.random.shuffle(age_labels)
 
     return np.array(images), np.array(face_labels), np.array(mask_labels), np.array(age_labels)

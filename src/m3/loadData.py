@@ -73,7 +73,7 @@ def load_img(img_path, img_size):
     
     return img
 
-def createDataframe(dir):
+def createDataframe(dir, for_regression=False):
     image_paths = []
     face_labels = []
     mask_labels = []
@@ -82,11 +82,11 @@ def createDataframe(dir):
     for dirpath, dirs, files in os.walk(dir): 
         for filename in files:
             image_path = os.path.join(dirpath, filename)
-            face, mask, age = get_label(filename)
+            face, mask, age = get_label(filename, for_regression)
             image_paths.append(image_path)
             face_labels.append(face)
-            face_labels.append(mask)
-            face_labels.append(age)
+            mask_labels.append(mask)
+            age_labels.append(age)
 
     df = pd.DataFrame()
     df['image'], df['face'], df['mask'], df['age'] = image_paths, face_labels, mask_labels, age_labels

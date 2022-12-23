@@ -1,12 +1,14 @@
 # ------------------------------- IMPORTS ------------------------------- #
 
 import os
+import matplotlib.pyplot as plt
 
 # Tensorflow imports
 import tensorflow as tf
 from tensorflow import keras
 import keras.backend as k
 from tensorflow.keras.applications import ResNet50
+#from tensorflow.keras.applications import MobileNet
 
 from loadData import createDataset
 
@@ -14,9 +16,10 @@ from loadData import createDataset
 
 # Log parameters
 model_name = 'siamese_model'
-savedModelPath = f'../../log/saved_models/{model_name}'
-tb_log_dir = f'../../log/tensorboard/{model_name}'
-cp_filepath = f'../../log/cps/{model_name}/'
+savedModelPath = f'./log/saved_models/{model_name}'
+tb_log_dir = f'./log/tensorboard/{model_name}'
+cp_filepath = f'./log/cps/{model_name}/'
+training_data_path = './data/m4/training'
 
 if not os.path.exists(cp_filepath):
     os.makedirs(cp_filepath)
@@ -25,13 +28,13 @@ cp_filepath += 'latest_weights.h5'
 
 # Dynamic hyperparameters
 learningRate = 0.001
-doDataAugmentation = True
+doDataAugmentation = False
 dropoutRate = 0.25
 width_multiplier = 1
 depth_multiplier = 1
 
 # Training parameters
-batch_size = 32
+batch_size = 4
 epochs = 10
 validation_split = 0.2
 
@@ -63,27 +66,25 @@ data_augmentation = keras.Sequential(
     ]
 )
 
+
 # ----------------------------------- DATASETS ----------------------------------- #
 
 # Creating the training and validation dataset
-train_image_pairs, train_labels = createDataset('../../data/m3/training', (image_height, image_width))
+train_image_pairs, train_labels = createDataset(training_data_path, (image_height, image_width))
+
 
 # ------------------------------- CREATING MODEL ------------------------------- #
 
 # Loading either the MobileNet architecture model or the previously saved model, and freeze it for transfer learning
 base = ResNet50(
                 input_shape=(image_height, image_width, 3), # Optional shape tuple, only to be specified if include_top is False
-                # alpha=width_multiplier, # Controls the width of the network. (Width multiplier)
-                # depth_multiplier=depth_multiplier, # Depth multiplier for depthwise convolution. (Resolution multiplier)
-                # dropout=dropoutRate, # Dropout rate. Default to 0.001.
+                #alpha=width_multiplier, # Controls the width of the network. (Width multiplier)
+                #depth_multiplier=depth_multiplier, # Depth multiplier for depthwise convolution. (Resolution multiplier)
+                #dropout=dropoutRate, # Dropout rate. Default to 0.001.
                 weights="imagenet",
-                # input_tensor=None,
-                # pooling='avg', # Optional pooling mode for feature extraction when include_top is False. (None, avg, max)
                 include_top=False
                 )
            
-# Freeze the base model
-base.trainable = False
 
 inputs = keras.Input(shape=(image_height, image_width, 3))
 
@@ -99,19 +100,22 @@ base_model = keras.layers.Dropout(0.3)(base_model)
 
 # Add Dense layer
 top_model = tf.keras.layers.Dense(256, activation='relu')(base_model)
-top_model = keras.layers.BatchNormalization()(top_model)
-top_model = keras.layers.Activation('relu')(top_model)
-top_model = keras.layers.Dropout(0.2)(top_model)
+#top_model = keras.layers.BatchNormalization()(top_model)
+#top_model = keras.layers.Activation('relu')(top_model)
+#top_model = keras.layers.Dropout(0.2)(top_model)
 
-outputs = tf.keras.layers.Dense(128, activation='relu')(top_model)
+base_model_outputs = tf.keras.layers.Dense(128, activation='relu')(top_model)
+
+model = keras.Model(inputs, base_model_outputs)
 
 
 # ------------------------------- CREATING MODEL INSTANCES ------------------------------- #
 
 inputs_A = keras.Input(shape=(image_height, image_width, 3))
 inputs_B = keras.Input(shape=(image_height, image_width, 3))
-model_A = keras.Model(inputs_A, outputs)
-model_B = keras.Model(inputs_B, outputs)
+model_A = model(inputs_A)
+model_B = model(inputs_B)
+
 
 # ------------------------------- CREATING SIAMESE MODEL ------------------------------- #
 # https://medium.com/wicds/face-recognition-using-siamese-networks-84d6f2e54ea4
@@ -122,12 +126,14 @@ def euclidean_distance(vectors):
     return k.sqrt(k.maximum(sum_squared, k.epsilon()))
 
 distance = keras.layers.Lambda(euclidean_distance)([model_A, model_B])
-outputs = keras.layers.Dense(1, activation="sigmoid")(distance)
+outputs = keras.layers.Dense(1, activation='sigmoid')(distance)
+
 siamese_model = keras.Model(inputs=[inputs_A, inputs_B], outputs=outputs)
 keras.utils.plot_model(siamese_model, to_file=f'{model_name}.png', show_layer_activations=True)
+siamese_model.summary()
 
+siamese_model.compile(loss='binary_crossentropy', optimizer='adam', metrics='accuracy')
 
-siamese_model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["accuracy"])
 
 # ------------------------------- TRAINING THE MODEL ------------------------------- #
 
@@ -140,6 +146,48 @@ history = siamese_model.fit(
             callbacks=callbacks
             )
 
+
 # ------------------------------- SAVING THE MODEL ------------------------------- #
 
 siamese_model.save(savedModelPath)
+
+def get_img_predictions(img_paths):
+    # Loading and preprocessing the image
+    img1 = tf.keras.utils.load_img(
+        img_paths[0], target_size=(image_height, image_width)
+    )
+    img2 = tf.keras.utils.load_img(
+        img_paths[1], target_size=(image_height, image_width)
+    )
+
+    img1_array = tf.keras.utils.img_to_array(img1)
+    img1_array_batch = tf.expand_dims(img1_array, 0) # Create a batch
+    img2_array = tf.keras.utils.img_to_array(img2)
+    img2_array_batch = tf.expand_dims(img2_array, 0) # Create a batch
+
+    # Let the model make a prediction for the image
+    preds = siamese_model.predict([img1_array_batch, img2_array_batch])
+
+    # Getting face, mask and age prediction
+    pred = round(preds[0][0][0], 4)
+
+    return img, pred
+
+# Getting the image path for image to predict
+img_paths = ('../../data/m3/extras/hidden-face-boy-dp.jpg', '../../data/m3/extras/hidden-face-boy-dp.jpg')
+img_path_split = img_paths[0].split('/')
+img_name = img_path_split[len(img_path_split)-1]
+img_name_split = img_name.split('_')
+
+# Getting the actual age from the file name
+if(len(img_name_split) > 1 and str.isnumeric(img_name_split[0])):
+    actual = img_name_split[0]
+else:
+    actual = '?'
+
+img, pred = get_img_predictions(img_paths)
+
+# Showing the image with the corresponding predictions
+ax = plt.subplot(1, 1, 1)
+plt.imshow(img)
+plt.title("Face: {:.2f}% | Mask: {:.2f}% | Age: {} (Actual: {})".format(pred * 100, actual))

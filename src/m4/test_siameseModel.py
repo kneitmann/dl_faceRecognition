@@ -9,9 +9,9 @@ import pandas as pd
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
-model_path = '../../log/saved_models/mtm_classification_cascade/'
-test_dir = '../../data/m3/test'
-batch_size = 32
+model_path = './log/saved_models/siamese_model/'
+test_dir = './data/m4/test'
+batch_size = 8
 image_height = 160
 image_width = 160
 
@@ -40,7 +40,7 @@ def get_img_predictions(img_paths):
     return img, pred
 
 def export_results_to_CSV(img_path):
-    df = createDataframe(test_dir, for_regression=True)
+    df = createDataframe(test_dir)
     df_length = len (df.index)
 
     df_test = pd.DataFrame()

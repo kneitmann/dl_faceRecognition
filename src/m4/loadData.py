@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import matplotlib.pyplot as plt
 
 def is_number(n):
     try:
@@ -71,7 +72,7 @@ def generate_image_pairs(images_dataset, labels_dataset):
         neg_image = images_dataset[np.random.choice(neg_indices[0])]
         pair_images.append((image, neg_image))
         pair_labels.append(0)
-        
+
     return np.array(pair_images), np.array(pair_labels)
 
 def createDataset(dir, img_size):

@@ -32,7 +32,7 @@ def load_img(img_path, img_size):
             )
 
     img = keras.utils.img_to_array(img)
-    img = keras.applications.resnet.preprocess_input(img)
+    img = keras.applications.mobilenet.preprocess_input(img)
     
     return img
 
@@ -52,7 +52,7 @@ def createDataframe(dir, for_regression=False):
 
     return df
 
-def generate_image_pairs(images_dataset, labels_dataset):
+def generate_image_pairs(image_names, images_dataset, labels_dataset):
     unique_labels = np.unique(labels_dataset)
     label_wise_indices = dict()
     for label in unique_labels:
@@ -64,20 +64,25 @@ def generate_image_pairs(images_dataset, labels_dataset):
     pair_labels = []
     for index, image in enumerate(images_dataset):
         pos_indices = label_wise_indices.get(labels_dataset[index])
-        pos_image = images_dataset[np.random.choice(pos_indices)]
+        rndm_pos_index = np.random.choice(pos_indices)
+        pos_image = images_dataset[rndm_pos_index]
         pair_images.append((image, pos_image))
         pair_labels.append(1)
+        print(f'Positive image pair: {image_names[index]}, {image_names[rndm_pos_index]}')
 
         neg_indices = np.where(labels_dataset != labels_dataset[index])
-        neg_image = images_dataset[np.random.choice(neg_indices[0])]
+        rndm_neg_index = np.random.choice(neg_indices[0])
+        neg_image = images_dataset[rndm_neg_index]
         pair_images.append((image, neg_image))
         pair_labels.append(0)
+        print(f'Negative image pair: {image_names[index]}, {image_names[rndm_neg_index]}')
 
     return np.array(pair_images), np.array(pair_labels)
 
 def createDataset(dir, img_size):
     labels = []
     images = []
+    image_names = []
 
     for dirpath, dirs, files in os.walk(dir): 
         for filename in files:
@@ -87,6 +92,7 @@ def createDataset(dir, img_size):
 
             img = load_img(file_path, img_size)
             images.append(img)
+            image_names.append(filename)
 
     assert len(images) == len(labels)
 
@@ -94,5 +100,7 @@ def createDataset(dir, img_size):
     np.random.shuffle(images)
     np.random.seed(42)
     np.random.shuffle(labels)
+    np.random.seed(42)
+    np.random.shuffle(image_names)
 
-    return generate_image_pairs(np.array(images), np.array(labels))
+    return generate_image_pairs(image_names, np.array(images), np.array(labels))

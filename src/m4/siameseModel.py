@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
 import keras.backend as k
-from tensorflow.keras.applications import ResNet50
-#from tensorflow.keras.applications import MobileNet
+#from tensorflow.keras.applications import ResNet50
+from tensorflow.keras.applications import MobileNet
 
 from loadData import createDataset
 
@@ -35,7 +35,7 @@ depth_multiplier = 1
 
 # Training parameters
 batch_size = 4
-epochs = 10
+epochs = 50
 validation_split = 0.2
 
 callbacks = [
@@ -76,15 +76,16 @@ train_image_pairs, train_labels = createDataset(training_data_path, (image_heigh
 # ------------------------------- CREATING MODEL ------------------------------- #
 
 # Loading either the MobileNet architecture model or the previously saved model, and freeze it for transfer learning
-base = ResNet50(
+base = MobileNet(
                 input_shape=(image_height, image_width, 3), # Optional shape tuple, only to be specified if include_top is False
-                #alpha=width_multiplier, # Controls the width of the network. (Width multiplier)
-                #depth_multiplier=depth_multiplier, # Depth multiplier for depthwise convolution. (Resolution multiplier)
-                #dropout=dropoutRate, # Dropout rate. Default to 0.001.
+                alpha=width_multiplier, # Controls the width of the network. (Width multiplier)
+                depth_multiplier=depth_multiplier, # Depth multiplier for depthwise convolution. (Resolution multiplier)
+                dropout=dropoutRate, # Dropout rate. Default to 0.001.
                 weights="imagenet",
                 include_top=False
                 )
-           
+
+base.trainable = False
 
 inputs = keras.Input(shape=(image_height, image_width, 3))
 
@@ -94,12 +95,12 @@ if(doDataAugmentation):
 
 # Running base model in inference mode
 base_model = base(inputs, training=False)
-base_model = keras.layers.GlobalAveragePooling2D()(base_model)
-base_model = keras.layers.Dense(1024)(base_model)
-base_model = keras.layers.Dropout(0.3)(base_model)
+top_model = keras.layers.GlobalAveragePooling2D()(base_model)
+top_model = keras.layers.Dense(1024)(top_model)
+#base_model = keras.layers.Dropout(0.3)(base_model)
 
 # Add Dense layer
-top_model = tf.keras.layers.Dense(256, activation='relu')(base_model)
+top_model = tf.keras.layers.Dense(256, activation='relu')(top_model)
 #top_model = keras.layers.BatchNormalization()(top_model)
 #top_model = keras.layers.Activation('relu')(top_model)
 #top_model = keras.layers.Dropout(0.2)(top_model)
@@ -123,7 +124,9 @@ model_B = model(inputs_B)
 def euclidean_distance(vectors):
     (featA, featB) = vectors
     sum_squared = k.sum(k.square(featA - featB), axis=1, keepdims=True)
-    return k.sqrt(k.maximum(sum_squared, k.epsilon()))
+    dstnc = k.sqrt(k.maximum(sum_squared, k.epsilon()))
+    # print(dstnc)
+    return dstnc
 
 distance = keras.layers.Lambda(euclidean_distance)([model_A, model_B])
 outputs = keras.layers.Dense(1, activation='sigmoid')(distance)
@@ -132,7 +135,7 @@ siamese_model = keras.Model(inputs=[inputs_A, inputs_B], outputs=outputs)
 keras.utils.plot_model(siamese_model, to_file=f'{model_name}.png', show_layer_activations=True)
 siamese_model.summary()
 
-siamese_model.compile(loss='binary_crossentropy', optimizer='adam', metrics='accuracy')
+siamese_model.compile(loss='binary_crossentropy', optimizer='adam', metrics='binary_accuracy')
 
 
 # ------------------------------- TRAINING THE MODEL ------------------------------- #
@@ -151,7 +154,7 @@ history = siamese_model.fit(
 
 siamese_model.save(savedModelPath)
 
-def get_img_predictions(img_paths):
+def get_img_predictions(model, img_paths):
     # Loading and preprocessing the image
     img1 = tf.keras.utils.load_img(
         img_paths[0], target_size=(image_height, image_width)
@@ -162,19 +165,20 @@ def get_img_predictions(img_paths):
 
     img1_array = tf.keras.utils.img_to_array(img1)
     img1_array_batch = tf.expand_dims(img1_array, 0) # Create a batch
+
     img2_array = tf.keras.utils.img_to_array(img2)
     img2_array_batch = tf.expand_dims(img2_array, 0) # Create a batch
 
     # Let the model make a prediction for the image
-    preds = siamese_model.predict([img1_array_batch, img2_array_batch])
+    preds = model.predict([img1_array_batch, img2_array_batch])
 
     # Getting face, mask and age prediction
-    pred = round(preds[0][0][0], 4)
+    pred = round(preds[0][0], 4)
 
-    return img, pred
+    return img1, img2, pred
 
 # Getting the image path for image to predict
-img_paths = ('../../data/m3/extras/hidden-face-boy-dp.jpg', '../../data/m3/extras/hidden-face-boy-dp.jpg')
+img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/1_2.jpg')
 img_path_split = img_paths[0].split('/')
 img_name = img_path_split[len(img_path_split)-1]
 img_name_split = img_name.split('_')
@@ -185,9 +189,10 @@ if(len(img_name_split) > 1 and str.isnumeric(img_name_split[0])):
 else:
     actual = '?'
 
-img, pred = get_img_predictions(img_paths)
+img1, img2, pred = get_img_predictions(siamese_model, img_paths)
+print(f'Similarity: {pred}')
 
 # Showing the image with the corresponding predictions
-ax = plt.subplot(1, 1, 1)
-plt.imshow(img)
-plt.title("Face: {:.2f}% | Mask: {:.2f}% | Age: {} (Actual: {})".format(pred * 100, actual))
+ax = plt.subplot(2, 1, 1)
+plt.imshow(img1)
+plt.title("Same Face: {:.2f}%)".format(pred * 100, actual))

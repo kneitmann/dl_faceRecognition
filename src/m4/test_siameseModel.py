@@ -9,15 +9,15 @@ import pandas as pd
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
-model_path = './log/saved_models/siamese_model/'
+model_path = './log/saved_models/siamese_model.h5'
 test_dir = './data/m4/test'
-batch_size = 8
+batch_size = 4
 image_height = 160
 image_width = 160
 
 # ------------------------------- FUNCTIONS ------------------------------- #
 
-def get_img_predictions(img_paths):
+def get_img_predictions(model, img_paths):
     # Loading and preprocessing the image
     img1 = tf.keras.utils.load_img(
         img_paths[0], target_size=(image_height, image_width)
@@ -32,12 +32,13 @@ def get_img_predictions(img_paths):
     img2_array_batch = tf.expand_dims(img2_array, 0) # Create a batch
 
     # Let the model make a prediction for the image
-    preds = loaded_model.predict([img1_array_batch, img2_array_batch])
+    preds = model.predict([img1_array_batch, img2_array_batch])
 
     # Getting face, mask and age prediction
-    pred = round(preds[0][0][0], 4)
+    pred = round(preds[0][0], 4)
 
-    return img, pred
+    return img1, img2, pred
+
 
 def export_results_to_CSV(img_path):
     df = createDataframe(test_dir)
@@ -77,7 +78,7 @@ print(f'Loss: {results[0]}; Accuracy: {results[1]}')
 # ------------------------------- MODEl PREDICTION ------------------------------- #
 
 # Getting the image path for image to predict
-img_paths = ('../../data/m3/extras/hidden-face-boy-dp.jpg', '../../data/m3/extras/hidden-face-boy-dp.jpg')
+img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/14_28.jpg')
 img_path_split = img_paths[0].split('/')
 img_name = img_path_split[len(img_path_split)-1]
 img_name_split = img_name.split('_')
@@ -88,9 +89,10 @@ if(len(img_name_split) > 1 and str.isnumeric(img_name_split[0])):
 else:
     actual = '?'
 
-img, pred = get_img_predictions(img_paths)
+img1, img2, pred = get_img_predictions(loaded_model, img_paths)
+print(f'Similarity: {pred}')
 
 # Showing the image with the corresponding predictions
-ax = plt.subplot(1, 1, 1)
-plt.imshow(img)
-plt.title("Face: {:.2f}% | Mask: {:.2f}% | Age: {} (Actual: {})".format(pred * 100, actual))
+ax = plt.subplot(2, 1, 1)
+plt.imshow(img1)
+plt.title("Same Face: {:.2f}%)".format(pred * 100, actual))

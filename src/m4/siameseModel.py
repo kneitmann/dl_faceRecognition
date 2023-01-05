@@ -35,7 +35,7 @@ depth_multiplier = 1
 
 # Training parameters
 batch_size = 4
-epochs = 50
+epochs = 5
 validation_split = 0.2
 
 callbacks = [
@@ -122,10 +122,10 @@ model_B = model(inputs_B)
 # https://medium.com/wicds/face-recognition-using-siamese-networks-84d6f2e54ea4
 
 def euclidean_distance(vectors):
-    (featA, featB) = vectors
-    sum_squared = k.sum(k.square(featA - featB), axis=1, keepdims=True)
+    #(featA, featB) = vectors
+    #sum_squared = k.sum(k.square(featA - featB), axis=1, keepdims=True)
+    sum_squared = k.sum(k.square(vectors[0] - vectors[1]), axis=1, keepdims=True)
     dstnc = k.sqrt(k.maximum(sum_squared, k.epsilon()))
-    # print(dstnc)
     return dstnc
 
 distance = keras.layers.Lambda(euclidean_distance)([model_A, model_B])
@@ -152,7 +152,16 @@ history = siamese_model.fit(
 
 # ------------------------------- SAVING THE MODEL ------------------------------- #
 
-siamese_model.save(savedModelPath)
+keras.models.save_model(
+    siamese_model,
+    savedModelPath,
+    # overwrite=True,
+    # include_optimizer=True,
+    # save_format=None,
+    # signatures=None,
+    # options=None,
+    # save_traces=True
+)
 
 def get_img_predictions(model, img_paths):
     # Loading and preprocessing the image

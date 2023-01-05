@@ -109,9 +109,10 @@ def CNN(inputs):
     # x = keras.layers.Dropout(0.3)(x)
 
     pooledOutput = keras.layers.GlobalAveragePooling2D()(x)
+    x = keras.layers.Dropout(0.3)(x)
     # pooledOutput = keras.layers.Dense(1024)(pooledOutput)
-    pooledOutput = keras.layers.Dense(512)(pooledOutput)
-    outputs = keras.layers.Dense(128)(pooledOutput)
+    pooledOutput = keras.layers.Dense(512, activation='relu')(pooledOutput)
+    outputs = keras.layers.Dense(128, activation='relu')(pooledOutput)
 
     model = keras.Model(inputs, outputs)
     return model

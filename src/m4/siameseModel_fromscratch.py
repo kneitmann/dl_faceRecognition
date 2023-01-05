@@ -10,7 +10,7 @@ import keras.backend as k
 #from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.applications import MobileNet
 
-from loadData import createDataset
+from loadData import createDataset, load_img
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
@@ -35,7 +35,7 @@ depth_multiplier = 1
 
 # Training parameters
 batch_size = 4
-epochs = 50
+epochs = 12
 validation_split = 0.2
 
 callbacks = [
@@ -66,54 +66,78 @@ data_augmentation = keras.Sequential(
     ]
 )
 
+# ----------------------------------- FUNCTIONS ----------------------------------- #
+
+# https://keras.io/examples/vision/image_classification_from_scratch/#build-a-model
+
+def Xception_Small(inputs):
+    # Entry block
+    x = keras.layers.Conv2D(128, 3, strides=2, padding="same")(inputs)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.Activation("relu")(x)
+
+    for size in [256, 512, 728]:
+        x = keras.layers.Activation("relu")(x)
+        x = keras.layers.SeparableConv2D(size, 3, padding="same")(x)
+        x = keras.layers.BatchNormalization()(x)
+
+        x = keras.layers.Activation("relu")(x)
+        x = keras.layers.SeparableConv2D(size, 3, padding="same")(x)
+        x = keras.layers.BatchNormalization()(x)
+
+        x = keras.layers.MaxPooling2D(3, strides=2, padding="same")(x)
+
+    x = keras.layers.SeparableConv2D(1024, 3, padding="same")(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.Activation("relu")(x)
+
+    x = keras.layers.GlobalAveragePooling2D()(x)
+    x = keras.layers.Dropout(0.5)(x)
+    x = keras.layers.Dense(256)(x)
+    outputs = keras.layers.Dense(128)(x)
+
+    return keras.Model(inputs, outputs)
+
+def CNN(inputs):
+    x = keras.layers.Conv2D(96, (11, 11), padding="same", activation="relu")(inputs)
+    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = keras.layers.Dropout(0.3)(x)
+
+    x = keras.layers.Conv2D(256, (5, 5), padding="same", activation="relu")(x)
+    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = keras.layers.Dropout(0.3)(x)
+
+    x = keras.layers.Conv2D(384, (3, 3), padding="same", activation="relu")(x)
+    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = keras.layers.Dropout(0.3)(x)
+
+    pooledOutput = keras.layers.GlobalAveragePooling2D()(x)
+    pooledOutput = keras.layers.Dense(1024)(pooledOutput)
+    outputs = keras.layers.Dense(128)(pooledOutput)
+
+    model = keras.Model(inputs, outputs)
+    return model
 
 # ----------------------------------- DATASETS ----------------------------------- #
 
 # Creating the training and validation dataset
-train_image_pairs, train_labels = createDataset(training_data_path, (image_height, image_width))
+train_image_pairs, train_labels = createDataset(training_data_path, (image_height, image_width), grayscale=True)
 
 
 # ------------------------------- CREATING MODEL ------------------------------- #
 
-# Loading either the MobileNet architecture model or the previously saved model, and freeze it for transfer learning
-base = MobileNet(
-                input_shape=(image_height, image_width, 3), # Optional shape tuple, only to be specified if include_top is False
-                alpha=width_multiplier, # Controls the width of the network. (Width multiplier)
-                depth_multiplier=depth_multiplier, # Depth multiplier for depthwise convolution. (Resolution multiplier)
-                dropout=dropoutRate, # Dropout rate. Default to 0.001.
-                weights="imagenet",
-                include_top=False
-                )
-
-base.trainable = False
-
-inputs = keras.Input(shape=(image_height, image_width, 3))
+inputs = keras.Input(shape=(image_height, image_width, 1))
 
 # Data Augmentation on input
 if(doDataAugmentation):
     inputs = data_augmentation(inputs)
 
-# Running base model in inference mode
-base_model = base(inputs, training=False)
-top_model = keras.layers.GlobalAveragePooling2D()(base_model)
-top_model = keras.layers.Dense(1024)(top_model)
-#base_model = keras.layers.Dropout(0.3)(base_model)
-
-# Add Dense layer
-top_model = tf.keras.layers.Dense(256, activation='relu')(top_model)
-#top_model = keras.layers.BatchNormalization()(top_model)
-#top_model = keras.layers.Activation('relu')(top_model)
-#top_model = keras.layers.Dropout(0.2)(top_model)
-
-base_model_outputs = tf.keras.layers.Dense(128, activation='relu')(top_model)
-
-model = keras.Model(inputs, base_model_outputs)
-
+model = CNN(inputs)
 
 # ------------------------------- CREATING MODEL INSTANCES ------------------------------- #
 
-inputs_A = keras.Input(shape=(image_height, image_width, 3))
-inputs_B = keras.Input(shape=(image_height, image_width, 3))
+inputs_A = keras.Input(shape=(image_height, image_width, 1))
+inputs_B = keras.Input(shape=(image_height, image_width, 1))
 model_A = model(inputs_A)
 model_B = model(inputs_B)
 
@@ -125,7 +149,6 @@ def euclidean_distance(vectors):
     (featA, featB) = vectors
     sum_squared = k.sum(k.square(featA - featB), axis=1, keepdims=True)
     dstnc = k.sqrt(k.maximum(sum_squared, k.epsilon()))
-    # print(dstnc)
     return dstnc
 
 distance = keras.layers.Lambda(euclidean_distance)([model_A, model_B])
@@ -152,16 +175,36 @@ history = siamese_model.fit(
 
 # ------------------------------- SAVING THE MODEL ------------------------------- #
 
-siamese_model.save(savedModelPath)
+keras.models.save_model(
+    siamese_model,
+    savedModelPath,
+    # overwrite=True,
+    # include_optimizer=True,
+    # save_format=None,
+    # signatures=None,
+    # options=None,
+    # save_traces=True
+)
 
-def get_img_predictions(model, img_paths):
+def get_img_predictions(model, img_paths, grayscale=False):
     # Loading and preprocessing the image
-    img1 = tf.keras.utils.load_img(
-        img_paths[0], target_size=(image_height, image_width)
-    )
-    img2 = tf.keras.utils.load_img(
-        img_paths[1], target_size=(image_height, image_width)
-    )
+    color_mode = 'rgb'
+    if grayscale: color_mode = 'grayscale'
+
+    img1 = keras.utils.load_img(
+                img_paths[0],
+                color_mode=color_mode,
+                target_size=(image_height, image_width),
+                interpolation="bilinear",
+                keep_aspect_ratio=True,
+            )
+    img2 = keras.utils.load_img(
+                img_paths[1],
+                color_mode=color_mode,
+                target_size=(image_height, image_width),
+                interpolation="bilinear",
+                keep_aspect_ratio=True,
+            )
 
     img1_array = tf.keras.utils.img_to_array(img1)
     img1_array_batch = tf.expand_dims(img1_array, 0) # Create a batch
@@ -189,7 +232,7 @@ if(len(img_name_split) > 1 and str.isnumeric(img_name_split[0])):
 else:
     actual = '?'
 
-img1, img2, pred = get_img_predictions(siamese_model, img_paths)
+img1, img2, pred = get_img_predictions(siamese_model, img_paths, grayscale=True)
 print(f'Similarity: {pred}')
 
 # Showing the image with the corresponding predictions

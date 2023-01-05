@@ -70,14 +70,12 @@ def generate_image_pairs(image_names, images_dataset, labels_dataset):
         pos_image = images_dataset[rndm_pos_index]
         pair_images.append((image, pos_image))
         pair_labels.append(1)
-        print(f'Positive image pair: {image_names[index]}, {image_names[rndm_pos_index]}')
 
         neg_indices = np.where(labels_dataset != labels_dataset[index])
         rndm_neg_index = np.random.choice(neg_indices[0])
         neg_image = images_dataset[rndm_neg_index]
         pair_images.append((image, neg_image))
         pair_labels.append(0)
-        print(f'Negative image pair: {image_names[index]}, {image_names[rndm_neg_index]}')
 
     return np.array(pair_images), np.array(pair_labels)
 

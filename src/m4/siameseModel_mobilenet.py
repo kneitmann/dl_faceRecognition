@@ -22,8 +22,6 @@ training_data_path = './data/m4/training'
 if not os.path.exists(cp_filepath):
     os.makedirs(cp_filepath)
 
-cp_filepath += 'latest_weights.h5'
-
 # Dynamic hyperparameters
 learningRate = 0.001
 doDataAugmentation = False
@@ -39,7 +37,7 @@ validation_split = 0.2
 callbacks = [
     # Checkpoint callback                    
     keras.callbacks.ModelCheckpoint(
-                    filepath=cp_filepath, 
+                    filepath=cp_filepath + 'latest_weights.h5', 
                     verbose=1, 
                     save_weights_only=True),
 
@@ -87,16 +85,7 @@ history = siamese_model.fit(
 
 # ------------------------------- SAVING THE MODEL ------------------------------- #
 
-keras.models.save_model(
-    siamese_model,
-    savedModelPath,
-    # overwrite=True,
-    # include_optimizer=True,
-    # save_format=None,
-    # signatures=None,
-    # options=None,
-    # save_traces=True
-)
+siamese_model.save_weights(cp_filepath + f'{model_name}.h5')
 
 # ------------------------------- MAKING A PREDICTION ------------------------------- #
 

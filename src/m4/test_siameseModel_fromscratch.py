@@ -7,9 +7,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+from create_siameseModel import createSiameseModel_fromScratch
+
 # ------------------------------- PARAMETERS ------------------------------- #
 
-model_path = './log/saved_models/siamese_model.h5'
+model_name = 'siamese_model_fromScratch'
+model_path = f'./log/saved_models/{model_name}.h5'
+model_weights_path = f'./log/cps/{model_name}/{model_name}.h5'
 test_dir = './data/m4/test'
 batch_size = 4
 image_height = 160
@@ -67,11 +71,13 @@ def export_results_to_CSV(img_path):
 
 # ------------------------------- MODEl EVALUATION ON TEST DATA ------------------------------- #
 
-loaded_model = keras.models.load_model(model_path)
+siamese_model = createSiameseModel_fromScratch((image_height, image_width, 1), False)
+siamese_model.compile(loss='binary_crossentropy', optimizer='adam', metrics='binary_accuracy')
+siamese_model.load_weights(model_weights_path)
 
 x_pairs, y_pairs = createDataset(test_dir, (image_height, image_width))
 
-results = loaded_model.evaluate([x_pairs[:,0], x_pairs[:,1]], y_pairs[:])
+results = siamese_model.evaluate([x_pairs[:,0], x_pairs[:,1]], y_pairs[:])
 
 print(f'Loss: {results[0]}; Accuracy: {results[1]}')
 
@@ -89,7 +95,7 @@ if(len(img_name_split) > 1 and str.isnumeric(img_name_split[0])):
 else:
     actual = '?'
 
-img1, img2, pred = get_img_predictions(loaded_model, img_paths)
+img1, img2, pred = get_img_predictions(siamese_model, img_paths)
 print(f'Similarity: {pred}')
 
 # Showing the image with the corresponding predictions

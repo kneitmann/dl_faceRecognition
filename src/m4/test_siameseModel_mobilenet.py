@@ -84,7 +84,7 @@ print(f'Loss: {results[0]}; Accuracy: {results[1]}')
 # ------------------------------- MODEl PREDICTION ------------------------------- #
 
 # Getting the image path for image to predict
-img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/14_28.jpg')
+img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/14_27.jpg')
 img_path_split = img_paths[0].split('/')
 img_name = img_path_split[len(img_path_split)-1]
 img_name_split = img_name.split('_')

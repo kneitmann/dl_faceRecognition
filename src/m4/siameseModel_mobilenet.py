@@ -31,7 +31,7 @@ depth_multiplier = 1
 
 # Training parameters
 batch_size = 4
-epochs = 10
+epochs = 35
 validation_split = 0.2
 
 callbacks = [

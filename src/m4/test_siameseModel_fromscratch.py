@@ -23,12 +23,22 @@ image_width = 160
 
 def get_img_predictions(model, img_paths):
     # Loading and preprocessing the image
-    img1 = tf.keras.utils.load_img(
-        img_paths[0], target_size=(image_height, image_width)
-    )
-    img2 = tf.keras.utils.load_img(
-        img_paths[1], target_size=(image_height, image_width)
-    )
+    color_mode = 'grayscale'
+
+    img1 = keras.utils.load_img(
+                img_paths[0],
+                color_mode=color_mode,
+                target_size=(image_height, image_width),
+                interpolation="bilinear",
+                keep_aspect_ratio=True,
+            )
+    img2 = keras.utils.load_img(
+                img_paths[1],
+                color_mode=color_mode,
+                target_size=(image_height, image_width),
+                interpolation="bilinear",
+                keep_aspect_ratio=True,
+            )
 
     img1_array = tf.keras.utils.img_to_array(img1)
     img1_array_batch = tf.expand_dims(img1_array, 0) # Create a batch
@@ -75,7 +85,7 @@ siamese_model = createSiameseModel_fromScratch((image_height, image_width, 1), F
 siamese_model.compile(loss='binary_crossentropy', optimizer='adam', metrics='binary_accuracy')
 siamese_model.load_weights(model_weights_path)
 
-x_pairs, y_pairs = createDataset(test_dir, (image_height, image_width))
+x_pairs, y_pairs = createDataset(test_dir, (image_height, image_width), True)
 
 results = siamese_model.evaluate([x_pairs[:,0], x_pairs[:,1]], y_pairs[:])
 
@@ -84,7 +94,7 @@ print(f'Loss: {results[0]}; Accuracy: {results[1]}')
 # ------------------------------- MODEl PREDICTION ------------------------------- #
 
 # Getting the image path for image to predict
-img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/14_28.jpg')
+img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/1_1.jpg')
 img_path_split = img_paths[0].split('/')
 img_name = img_path_split[len(img_path_split)-1]
 img_name_split = img_name.split('_')

@@ -6,16 +6,14 @@ import matplotlib.pyplot as plt
 # Tensorflow imports
 import tensorflow as tf
 from tensorflow import keras
-import keras.backend as k
-#from tensorflow.keras.applications import ResNet50
-from tensorflow.keras.applications import MobileNet
 
-from loadData import createDataset, load_img
+from loadData import createDataset
+from create_siameseModel import createSiameseModel_fromScratch
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model'
+model_name = 'siamese_model_fromScratch'
 savedModelPath = f'./log/saved_models/{model_name}'
 tb_log_dir = f'./log/tensorboard/{model_name}'
 cp_filepath = f'./log/cps/{model_name}/'
@@ -35,7 +33,7 @@ depth_multiplier = 1
 
 # Training parameters
 batch_size = 4
-epochs = 12
+epochs = 10
 validation_split = 0.2
 
 callbacks = [
@@ -59,102 +57,15 @@ callbacks = [
 image_height = 160
 image_width = 160
 
-data_augmentation = keras.Sequential(
-    [
-        keras.layers.RandomRotation(0.1),
-        keras.layers.RandomBrightness(0.2),
-    ]
-)
-
-# ----------------------------------- FUNCTIONS ----------------------------------- #
-
-# https://keras.io/examples/vision/image_classification_from_scratch/#build-a-model
-
-def Xception_Small(inputs):
-    # Entry block
-    x = keras.layers.Conv2D(128, 3, strides=2, padding="same")(inputs)
-    x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.Activation("relu")(x)
-
-    for size in [256, 512, 728]:
-        x = keras.layers.Activation("relu")(x)
-        x = keras.layers.SeparableConv2D(size, 3, padding="same")(x)
-        x = keras.layers.BatchNormalization()(x)
-
-        x = keras.layers.Activation("relu")(x)
-        x = keras.layers.SeparableConv2D(size, 3, padding="same")(x)
-        x = keras.layers.BatchNormalization()(x)
-
-        x = keras.layers.MaxPooling2D(3, strides=2, padding="same")(x)
-
-    x = keras.layers.SeparableConv2D(1024, 3, padding="same")(x)
-    x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.Activation("relu")(x)
-
-    x = keras.layers.GlobalAveragePooling2D()(x)
-    x = keras.layers.Dropout(0.5)(x)
-    x = keras.layers.Dense(256)(x)
-    outputs = keras.layers.Dense(128)(x)
-
-    return keras.Model(inputs, outputs)
-
-def CNN(inputs):
-    x = keras.layers.Conv2D(96, (11, 11), padding="same", activation="relu")(inputs)
-    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
-    x = keras.layers.Dropout(0.3)(x)
-
-    x = keras.layers.Conv2D(256, (5, 5), padding="same", activation="relu")(x)
-    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
-    x = keras.layers.Dropout(0.3)(x)
-
-    x = keras.layers.Conv2D(384, (3, 3), padding="same", activation="relu")(x)
-    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
-    x = keras.layers.Dropout(0.3)(x)
-
-    pooledOutput = keras.layers.GlobalAveragePooling2D()(x)
-    pooledOutput = keras.layers.Dense(1024)(pooledOutput)
-    outputs = keras.layers.Dense(128)(pooledOutput)
-
-    model = keras.Model(inputs, outputs)
-    return model
-
 # ----------------------------------- DATASETS ----------------------------------- #
 
 # Creating the training and validation dataset
 train_image_pairs, train_labels = createDataset(training_data_path, (image_height, image_width), grayscale=True)
 
 
-# ------------------------------- CREATING MODEL ------------------------------- #
+# ------------------------------- CREATING AND COMPILING MODEL ------------------------------- #
 
-inputs = keras.Input(shape=(image_height, image_width, 1))
-
-# Data Augmentation on input
-if(doDataAugmentation):
-    inputs = data_augmentation(inputs)
-
-model = CNN(inputs)
-
-# ------------------------------- CREATING MODEL INSTANCES ------------------------------- #
-
-inputs_A = keras.Input(shape=(image_height, image_width, 1))
-inputs_B = keras.Input(shape=(image_height, image_width, 1))
-model_A = model(inputs_A)
-model_B = model(inputs_B)
-
-
-# ------------------------------- CREATING SIAMESE MODEL ------------------------------- #
-# https://medium.com/wicds/face-recognition-using-siamese-networks-84d6f2e54ea4
-
-def euclidean_distance(vectors):
-    (featA, featB) = vectors
-    sum_squared = k.sum(k.square(featA - featB), axis=1, keepdims=True)
-    dstnc = k.sqrt(k.maximum(sum_squared, k.epsilon()))
-    return dstnc
-
-distance = keras.layers.Lambda(euclidean_distance)([model_A, model_B])
-outputs = keras.layers.Dense(1, activation='sigmoid')(distance)
-
-siamese_model = keras.Model(inputs=[inputs_A, inputs_B], outputs=outputs)
+siamese_model = createSiameseModel_fromScratch((image_height, image_width, 1), doDataAugmentation)
 keras.utils.plot_model(siamese_model, to_file=f'{model_name}.png', show_layer_activations=True)
 siamese_model.summary()
 
@@ -185,6 +96,8 @@ keras.models.save_model(
     # options=None,
     # save_traces=True
 )
+
+# ------------------------------- MAKING A PREDICTION ------------------------------- #
 
 def get_img_predictions(model, img_paths, grayscale=False):
     # Loading and preprocessing the image

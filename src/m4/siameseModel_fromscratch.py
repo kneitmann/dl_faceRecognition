@@ -66,6 +66,29 @@ data_augmentation = keras.Sequential(
     ]
 )
 
+# ----------------------------------- FUNCTIONS ----------------------------------- #
+
+def CNN(inputs):
+    x = keras.layers.Conv2D(96, (11, 11), padding="same", activation="relu")(inputs)
+    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = keras.layers.Dropout(0.3)(x)
+
+    x = keras.layers.Conv2D(256, (5, 5), padding="same", activation="relu")(x)
+    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = keras.layers.Dropout(0.3)(x)
+
+    x = keras.layers.Conv2D(384, (3, 3), padding="same", activation="relu")(x)
+    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    x = keras.layers.Dropout(0.3)(x)
+
+    pooledOutput = keras.layers.GlobalAveragePooling2D()(x)
+    pooledOutput = keras.layers.Dense(1024)(pooledOutput)
+    top_model = tf.keras.layers.Dense(256, activation='relu')(top_model)
+    outputs = keras.layers.Dense(128)(pooledOutput)
+
+    model = keras.Model(inputs, outputs)
+
+    return model
 
 # ----------------------------------- DATASETS ----------------------------------- #
 
@@ -75,40 +98,13 @@ train_image_pairs, train_labels = createDataset(training_data_path, (image_heigh
 
 # ------------------------------- CREATING MODEL ------------------------------- #
 
-# Loading either the MobileNet architecture model or the previously saved model, and freeze it for transfer learning
-base = MobileNet(
-                input_shape=(image_height, image_width, 3), # Optional shape tuple, only to be specified if include_top is False
-                alpha=width_multiplier, # Controls the width of the network. (Width multiplier)
-                depth_multiplier=depth_multiplier, # Depth multiplier for depthwise convolution. (Resolution multiplier)
-                dropout=dropoutRate, # Dropout rate. Default to 0.001.
-                weights="imagenet",
-                include_top=False
-                )
-
-base.trainable = False
-
 inputs = keras.Input(shape=(image_height, image_width, 3))
 
 # Data Augmentation on input
 if(doDataAugmentation):
     inputs = data_augmentation(inputs)
 
-# Running base model in inference mode
-base_model = base(inputs, training=False)
-top_model = keras.layers.GlobalAveragePooling2D()(base_model)
-top_model = keras.layers.Dense(1024)(top_model)
-#base_model = keras.layers.Dropout(0.3)(base_model)
-
-# Add Dense layer
-top_model = tf.keras.layers.Dense(256, activation='relu')(top_model)
-#top_model = keras.layers.BatchNormalization()(top_model)
-#top_model = keras.layers.Activation('relu')(top_model)
-#top_model = keras.layers.Dropout(0.2)(top_model)
-
-base_model_outputs = tf.keras.layers.Dense(128, activation='relu')(top_model)
-
-model = keras.Model(inputs, base_model_outputs)
-
+model = CNN(inputs)
 
 # ------------------------------- CREATING MODEL INSTANCES ------------------------------- #
 
@@ -122,9 +118,8 @@ model_B = model(inputs_B)
 # https://medium.com/wicds/face-recognition-using-siamese-networks-84d6f2e54ea4
 
 def euclidean_distance(vectors):
-    #(featA, featB) = vectors
-    #sum_squared = k.sum(k.square(featA - featB), axis=1, keepdims=True)
-    sum_squared = k.sum(k.square(vectors[0] - vectors[1]), axis=1, keepdims=True)
+    (featA, featB) = vectors
+    sum_squared = k.sum(k.square(featA - featB), axis=1, keepdims=True)
     dstnc = k.sqrt(k.maximum(sum_squared, k.epsilon()))
     return dstnc
 

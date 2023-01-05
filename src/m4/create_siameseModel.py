@@ -96,20 +96,21 @@ def Xception_Small(inputs):
     return keras.Model(inputs, outputs)
 
 def CNN(inputs):
-    x = keras.layers.Conv2D(96, (11, 11), padding="same", activation="relu")(inputs)
+    # x = keras.layers.Conv2D(128, (11, 11), padding="same", activation="relu")(inputs)
+    # x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    # x = keras.layers.Dropout(0.3)(x)
+
+    x = keras.layers.Conv2D(256, (5, 5), padding="same", activation="relu")(inputs)
     x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
     x = keras.layers.Dropout(0.3)(x)
 
-    x = keras.layers.Conv2D(256, (5, 5), padding="same", activation="relu")(x)
-    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
-    x = keras.layers.Dropout(0.3)(x)
-
-    x = keras.layers.Conv2D(384, (3, 3), padding="same", activation="relu")(x)
-    x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
-    x = keras.layers.Dropout(0.3)(x)
+    # x = keras.layers.Conv2D(512, (3, 3), padding="same", activation="relu")(x)
+    # x = keras.layers.MaxPooling2D(pool_size=(2, 2))(x)
+    # x = keras.layers.Dropout(0.3)(x)
 
     pooledOutput = keras.layers.GlobalAveragePooling2D()(x)
-    pooledOutput = keras.layers.Dense(1024)(pooledOutput)
+    # pooledOutput = keras.layers.Dense(1024)(pooledOutput)
+    pooledOutput = keras.layers.Dense(512)(pooledOutput)
     outputs = keras.layers.Dense(128)(pooledOutput)
 
     model = keras.Model(inputs, outputs)

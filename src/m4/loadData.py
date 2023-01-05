@@ -21,11 +21,13 @@ def get_label(file_path):
     
     return id
 
-def load_img(img_path, img_size):
+def load_img(img_path, img_size, grayscale=False):
+    color_mode = 'rgb'
+    if grayscale: color_mode = 'grayscale'
+
     img = keras.utils.load_img(
                 img_path,
-                grayscale=False,
-                color_mode="rgb",
+                color_mode=color_mode,
                 target_size=(img_size),
                 interpolation="bilinear",
                 keep_aspect_ratio=True,
@@ -79,7 +81,7 @@ def generate_image_pairs(image_names, images_dataset, labels_dataset):
 
     return np.array(pair_images), np.array(pair_labels)
 
-def createDataset(dir, img_size):
+def createDataset(dir, img_size, grayscale=False):
     labels = []
     images = []
     image_names = []
@@ -90,7 +92,7 @@ def createDataset(dir, img_size):
             label = get_label(filename)
             labels.append(label)
 
-            img = load_img(file_path, img_size)
+            img = load_img(file_path, img_size, grayscale)
             images.append(img)
             image_names.append(filename)
 

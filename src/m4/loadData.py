@@ -38,14 +38,14 @@ def load_img(img_path, img_size, grayscale=False):
     
     return img
 
-def createDataframe(dir, for_regression=False):
+def createDataframe(dir):
     image_paths = []
     labels = []
 
     for dirpath, dirs, files in os.walk(dir): 
         for filename in files:
             image_path = os.path.join(dirpath, filename)
-            label = get_label(filename, for_regression)
+            label = get_label(filename)
             image_paths.append(image_path)
             labels.append(label)
 
@@ -54,7 +54,7 @@ def createDataframe(dir, for_regression=False):
 
     return df
 
-def generate_image_pairs(image_names, images_dataset, labels_dataset):
+def generate_image_pairs(images_dataset, labels_dataset):
     unique_labels = np.unique(labels_dataset)
     label_wise_indices = dict()
     for label in unique_labels:
@@ -103,4 +103,4 @@ def createDataset(dir, img_size, grayscale=False):
     np.random.seed(42)
     np.random.shuffle(image_names)
 
-    return generate_image_pairs(image_names, np.array(images), np.array(labels))
+    return np.array(images), np.array(labels)

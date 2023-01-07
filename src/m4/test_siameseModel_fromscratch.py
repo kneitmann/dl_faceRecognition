@@ -118,10 +118,10 @@ if(len(img_name_split) > 1 and str.isnumeric(img_name_split[0])):
 else:
     actual = '?'
 
-img1, img2, pred = get_img_predictions(siamese_model, img_paths)
+pred = get_img_predictions(siamese_model, img_paths)
 print(f'Similarity: {pred}')
 
 # Showing the image with the corresponding predictions
-ax = plt.subplot(2, 1, 1)
-plt.imshow(img1)
-plt.title("Same Face: {:.2f}%)".format(pred * 100, actual))
+# ax = plt.subplot(2, 1, 1)
+# plt.imshow(img1)
+# plt.title("Same Face: {:.2f}%)".format(pred * 100, actual))

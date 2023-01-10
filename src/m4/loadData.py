@@ -69,15 +69,45 @@ def generate_image_pairs(images_dataset, labels_dataset):
         rndm_pos_index = np.random.choice(pos_indices)
         pos_image = images_dataset[rndm_pos_index]
         pair_images.append((image, pos_image))
-        pair_labels.append(1)
+        pair_labels.append(1.0)
 
         neg_indices = np.where(labels_dataset != labels_dataset[index])
         rndm_neg_index = np.random.choice(neg_indices[0])
         neg_image = images_dataset[rndm_neg_index]
         pair_images.append((image, neg_image))
-        pair_labels.append(0)
+        pair_labels.append(0.0)
 
     return np.array(pair_images), np.array(pair_labels)
+    
+def generate_image_pairs_alt(images_dataset, labels_dataset, min_equals = 1000):
+    pairs = []
+    labels = []
+    equal_items = 0
+    
+    #index with all the positions containing a same value
+    # Index[1] all the positions with values equals to 1
+    # Index[2] all the positions with values equals to 2
+    #.....
+    # Index[9] all the positions with values equals to 9 
+    index = [np.where(labels_dataset == i)[0] for i in range(10)]
+    
+    for n_item in range(len(images_dataset)): 
+        if equal_items < min_equals:
+            #Select the number to pair from index containing equal values. 
+            num_rnd = np.random.randint(len(index[labels_dataset[n_item]]))
+            num_item_pair = index[labels_dataset[n_item]][num_rnd]
+
+            equal_items += 1
+        else: 
+            #Select any number in the list 
+            num_item_pair = np.random.randint(len(images_dataset))
+            
+        #I'm not checking that numbers is different. 
+        #That's why I calculate the label depending if values are equal. 
+        labels += [int(labels_dataset[n_item] == labels_dataset[num_item_pair])]         
+        pairs += [[images_dataset[n_item], images_dataset[num_item_pair]]]
+            
+    return np.array(pairs), np.array(labels).astype('float32') 
 
 def createDataset(dir, img_size, grayscale=False):
     labels = []
@@ -96,11 +126,10 @@ def createDataset(dir, img_size, grayscale=False):
 
     assert len(images) == len(labels)
 
-    np.random.seed(42)
+    # Shuffling the data
+    np.random.seed(123)
     np.random.shuffle(images)
-    np.random.seed(42)
+    np.random.seed(123)
     np.random.shuffle(labels)
-    np.random.seed(42)
-    np.random.shuffle(image_names)
 
     return np.array(images), np.array(labels)

@@ -13,13 +13,6 @@ from tensorflow.keras.applications import MobileNet
 from loadData import createDataset, load_img
 
 # ------------------------------- FUNCTIONS ------------------------------- #
-
-def euclidean_distance(vectors):
-    (featA, featB) = vectors
-    sum_squared = k.sum(k.square(featA - featB), axis=1, keepdims=True)
-    dstnc = k.sqrt(k.maximum(sum_squared, k.epsilon()))
-    return dstnc
-
     
 data_augmentation = keras.Sequential(
     [
@@ -28,6 +21,29 @@ data_augmentation = keras.Sequential(
     ]
 )
 
+def euclidean_distance(vectors):
+    featA, featB = vectors
+    sum_squared = k.sum(k.square(featA - featB), axis=1, keepdims=True)
+    dstnc = k.sqrt(k.maximum(sum_squared, k.epsilon()))
+    return dstnc
+
+def eucl_dist_output_shape(shapes):
+    shape1, shape2 = shapes
+    return (shape1[0], 1)
+
+def contrastive_loss_with_margin(margin):
+    def contrastive_loss(y_true, y_pred):
+        square_pred = k.square(y_pred)
+        margin_square = k.square(k.maximum(margin - y_pred, 0))
+        return (y_true * square_pred + (1 - y_true) * margin_square)
+    return contrastive_loss
+
+def contrastive_loss_with_margin2(margin):
+    def contrastive_loss(y_true, y_pred):
+        square_pred = k.square(y_pred)
+        margin_square = k.maximum(k.square(margin) - k.square(y_pred), 0)
+        return (y_true * square_pred + (1 - y_true) * margin_square)
+    return contrastive_loss
 # ------------------------------- CNN MODELS ------------------------------- #
 
 def MobileNet_WithTop(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
@@ -38,6 +54,7 @@ def MobileNet_WithTop(input_shape, width_multiplier, depth_multiplier, dropoutRa
                     depth_multiplier=depth_multiplier, # Depth multiplier for depthwise convolution. (Resolution multiplier)
                     dropout=dropoutRate, # Dropout rate. Default to 0.001.
                     weights="imagenet",
+                    # weights=None,
                     include_top=False
                     )
 
@@ -52,14 +69,15 @@ def MobileNet_WithTop(input_shape, width_multiplier, depth_multiplier, dropoutRa
     # Running base model in inference mode
     base_model = base(inputs, training=False)
     top_model = keras.layers.GlobalAveragePooling2D()(base_model)
-    top_model = keras.layers.Dense(1024)(top_model)
-    #base_model = keras.layers.Dropout(0.3)(base_model)
+    top_model = keras.layers.Dense(1024, kernel_regularizer=keras.regularizers.L1L2(l1=1e-5, l2=1e-4))(top_model)
+    top_model = keras.layers.BatchNormalization()(top_model)
+    top_model = keras.layers.Dropout(dropoutRate)(top_model)
 
     # Add Dense layer
-    top_model = tf.keras.layers.Dense(256, activation='relu')(top_model)
-    #top_model = keras.layers.BatchNormalization()(top_model)
+    top_model = tf.keras.layers.Dense(256, kernel_regularizer=keras.regularizers.L1L2(l1=1e-5, l2=1e-4), activation='relu')(top_model)
+    top_model = keras.layers.BatchNormalization()(top_model)
     #top_model = keras.layers.Activation('relu')(top_model)
-    #top_model = keras.layers.Dropout(0.2)(top_model)
+    top_model = keras.layers.Dropout(dropoutRate)(top_model)
 
     outputs = tf.keras.layers.Dense(128, activation='relu')(top_model)
 
@@ -111,8 +129,8 @@ def CNN(inputs):
     pooledOutput = keras.layers.GlobalAveragePooling2D()(x)
     x = keras.layers.Dropout(0.3)(x)
     # pooledOutput = keras.layers.Dense(1024)(pooledOutput)
-    pooledOutput = keras.layers.Dense(512, activation='relu')(pooledOutput)
-    outputs = keras.layers.Dense(128, activation='relu')(pooledOutput)
+    pooledOutput = keras.layers.Dense(512, kernel_regularizer=keras.regularizers.L1L2(l1=1e-5, l2=1e-4), activation='relu')(pooledOutput)
+    outputs = keras.layers.Dense(128, kernel_regularizer=keras.regularizers.L1L2(l1=1e-5, l2=1e-4), activation='relu')(pooledOutput)
 
     model = keras.Model(inputs, outputs)
     return model
@@ -120,14 +138,28 @@ def CNN(inputs):
 # ------------------------------- SIAMESE MODELS ------------------------------- #
 
 # https://medium.com/wicds/face-recognition-using-siamese-networks-84d6f2e54ea4
-def createSiameseModel(base_model, input_shape):
+def createSiameseModel(base_model, input_shape, doDataAugmentation=False):
     inputs_A = keras.Input(shape=input_shape)
     inputs_B = keras.Input(shape=input_shape)
+
     model_A = base_model(inputs_A)
     model_B = base_model(inputs_B)
 
     distance = keras.layers.Lambda(euclidean_distance)([model_A, model_B])
     outputs = keras.layers.Dense(1, activation='sigmoid')(distance)
+
+    return keras.Model(inputs=[inputs_A, inputs_B], outputs=outputs)
+
+# https://pub.towardsai.net/how-to-create-a-siamese-network-with-keras-to-compare-images-5713b3ee7a28
+def createSiameseModel_alt(base_model, input_shape):
+    inputs_A = keras.Input(shape=input_shape)
+    inputs_B = keras.Input(shape=input_shape)
+    
+    modelA_output = base_model(inputs_A)
+    modelB_output = base_model(inputs_B)
+
+    outputs = keras.layers.Lambda(euclidean_distance, name='output_layer', 
+                                    output_shape=eucl_dist_output_shape)([modelA_output, modelB_output])
 
     return keras.Model(inputs=[inputs_A, inputs_B], outputs=outputs)
 
@@ -143,8 +175,29 @@ def createSiameseModel_fromScratch(input_shape, doDataAugmentation=False):
 
     return siamese_model
 
+def createSiameseModel_fromScratch_alt(input_shape, doDataAugmentation=False):
+    inputs = keras.Input(shape=input_shape)
+
+    # Data Augmentation on input
+    if(doDataAugmentation):
+        inputs = data_augmentation(inputs)
+
+    model = CNN(inputs)
+    siamese_model = createSiameseModel_alt(model, input_shape)
+
+    return siamese_model
+
     
 def createSiameseModel_mobilenet(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
+    inputs = keras.Input(shape=input_shape)
+
+    model = MobileNet_WithTop(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation)
+    siamese_model = createSiameseModel(model, input_shape)
+
+    return siamese_model
+
+        
+def createSiameseModel_mobilenet_alt(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
     inputs = keras.Input(shape=input_shape)
 
     # Data Augmentation on input

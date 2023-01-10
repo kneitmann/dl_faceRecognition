@@ -4,16 +4,14 @@ import os
 import numpy as np
 
 from tensorflow import keras
-import keras.backend as k
-import tensorflow as tf
 
 from loadData import createDataset, generate_image_pairs
-from create_siameseModel import createSiameseModel_mobilenet, contrastive_loss_with_margin, contrastive_loss_with_margin2
+from create_siameseModel import createSiameseModel_fromScratch_alt, contrastive_loss_with_margin
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_mobilenet'
+model_name = 'siamese_model_fromScratch_alt'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
@@ -29,7 +27,7 @@ if not os.path.exists(savedModelPath):
 # Dynamic hyperparameters
 learningRate = 0.001
 doDataAugmentation = False
-dropoutRate = 0.3
+dropoutRate = 0.25
 width_multiplier = 1
 depth_multiplier = 1
 
@@ -37,10 +35,6 @@ depth_multiplier = 1
 batch_size = 64
 epochs = 100
 validation_split = 0.2
-decay = learningRate/epochs
-
-def lr_time_decay(epoch, lr):
-    return lr*1/(1+decay*epoch)
 
 callbacks = [
     # Checkpoint callback                    
@@ -51,9 +45,6 @@ callbacks = [
 
     # Tensorboard callback
     keras.callbacks.TensorBoard(log_dir=tb_log_dir, histogram_freq=1),
-
-    # Learning Rate decay
-    # keras.callbacks.LearningRateScheduler(lr_time_decay, verbose=1),
     
     keras.callbacks.EarlyStopping(
             monitor="val_loss",
@@ -68,14 +59,14 @@ callbacks = [
 ]
 
 # Data parameters
-image_height = 160
-image_width = 160
+image_height = 128
+image_width = 128
 
 # ----------------------------------- DATASETS ----------------------------------- #
 
 # Creating the training and validation dataset
-train_images, train_labels = createDataset(training_data_path, (image_height, image_width))
-val_images, val_labels = createDataset(validation_data_path, (image_height, image_width))
+train_images, train_labels = createDataset(training_data_path, (image_height, image_width), grayscale=True)
+val_images, val_labels = createDataset(validation_data_path, (image_height, image_width), grayscale=True)
 
 # Creating the training image pairs and the corrsponding labels
 train_image_pairs, train_pair_labels = generate_image_pairs(train_images, train_labels)
@@ -92,16 +83,16 @@ np.random.shuffle(val_image_pairs)
 np.random.seed(42)
 np.random.shuffle(val_pair_labels)
 
-# ------------------------------- CREATING AND COMPILING THE MODEL ------------------------------- #
+# ------------------------------- CREATING AND COMPILING MODEL ------------------------------- #
 
-siamese_model = createSiameseModel_mobilenet((image_height, image_width, 3), width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation)
-
+siamese_model = createSiameseModel_fromScratch_alt((image_height, image_width, 1), doDataAugmentation)
 keras.utils.plot_model(siamese_model, to_file=f'{model_name}.png', show_layer_activations=True)
 siamese_model.summary()
 
 siamese_model.compile(
-            loss=contrastive_loss_with_margin(margin=1.0),
-            optimizer=keras.optimizers.Adam(learning_rate=learningRate), 
+            loss=contrastive_loss_with_margin(margin=1),
+            optimizer=keras.optimizers.RMSprop(learning_rate=learningRate),
+            # metrics='mse'
             )
 
 

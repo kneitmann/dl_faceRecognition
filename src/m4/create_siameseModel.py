@@ -44,9 +44,24 @@ def contrastive_loss_with_margin2(margin):
         margin_square = k.maximum(k.square(margin) - k.square(y_pred), 0)
         return (y_true * square_pred + (1 - y_true) * margin_square)
     return contrastive_loss
+
+def contrastive_loss_with_margin_alt(margin):
+    def contrastive_loss(y_true, y_pred):
+        # explicitly cast the true class label data type to the predicted
+        # class label data type (otherwise we run the risk of having two
+        # separate data types, causing TensorFlow to error out)
+        y_true = tf.cast(y_true, y_pred.dtype)
+        # calculate the contrastive loss between the true labels and
+        # the predicted labels
+        squaredPreds = k.square(y_pred)
+        squaredMargin = k.square(k.maximum(margin - y_pred, 0))
+        loss = k.mean(y_true * squaredPreds + (1 - y_true) * squaredMargin)
+        # return the computed contrastive loss to the calling function
+        return loss
+    return contrastive_loss
 # ------------------------------- CNN MODELS ------------------------------- #
 
-def MobileNet_WithTop(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
+def MobileNet_WithTop_Weighted(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
     # Loading either the MobileNet architecture model, and freeze it for transfer learning
     base = MobileNet(
                     input_shape=input_shape, # Optional shape tuple, only to be specified if include_top is False
@@ -61,27 +76,53 @@ def MobileNet_WithTop(input_shape, width_multiplier, depth_multiplier, dropoutRa
     base.trainable = False
 
     inputs = keras.Input(shape=input_shape)
-
     # Data Augmentation on input
     if(doDataAugmentation):
         inputs = data_augmentation(inputs)
 
-    # Running base model in inference mode
     base_model = base(inputs, training=False)
+    outputs = MobileNet_Top(base_model, dropoutRate)
+
+    return keras.Model(inputs, outputs)
+
+def MobileNet_WithTop_NoWeights(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
+    # Loading either the MobileNet architecture model, and freeze it for transfer learning
+    base = MobileNet(
+                    input_shape=input_shape, # Optional shape tuple, only to be specified if include_top is False
+                    alpha=width_multiplier, # Controls the width of the network. (Width multiplier)
+                    depth_multiplier=depth_multiplier, # Depth multiplier for depthwise convolution. (Resolution multiplier)
+                    dropout=dropoutRate, # Dropout rate. Default to 0.001.
+                    weights=None,
+                    # weights=None,
+                    include_top=False
+                    )
+
+    inputs = keras.Input(shape=input_shape)
+    # Data Augmentation on input
+    if(doDataAugmentation):
+        inputs = data_augmentation(inputs)
+
+    base_model = base(inputs, training=False)
+    outputs = MobileNet_Top(base_model, dropoutRate)
+
+    return keras.Model(inputs, outputs)
+
+def MobileNet_Top(base_model, dropout_rate):
+    # Running base model in inference mode
     top_model = keras.layers.GlobalAveragePooling2D()(base_model)
     top_model = keras.layers.Dense(1024, kernel_regularizer=keras.regularizers.L1L2(l1=1e-5, l2=1e-4))(top_model)
     top_model = keras.layers.BatchNormalization()(top_model)
-    top_model = keras.layers.Dropout(dropoutRate)(top_model)
+    top_model = keras.layers.Dropout(dropout_rate)(top_model)
 
     # Add Dense layer
     top_model = tf.keras.layers.Dense(256, kernel_regularizer=keras.regularizers.L1L2(l1=1e-5, l2=1e-4), activation='relu')(top_model)
     top_model = keras.layers.BatchNormalization()(top_model)
     #top_model = keras.layers.Activation('relu')(top_model)
-    top_model = keras.layers.Dropout(dropoutRate)(top_model)
+    top_model = keras.layers.Dropout(dropout_rate)(top_model)
 
     outputs = tf.keras.layers.Dense(128, activation='relu')(top_model)
 
-    return keras.Model(inputs, outputs)
+    return outputs
 
 # https://keras.io/examples/vision/image_classification_from_scratch/#build-a-model
 
@@ -188,14 +229,21 @@ def createSiameseModel_fromScratch_alt(input_shape, doDataAugmentation=False):
     return siamese_model
 
     
-def createSiameseModel_mobilenet(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
+def createSiameseModel_mobilenet_weighted(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
     inputs = keras.Input(shape=input_shape)
 
-    model = MobileNet_WithTop(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation)
+    model = MobileNet_WithTop_Weighted(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation)
     siamese_model = createSiameseModel(model, input_shape)
 
     return siamese_model
+    
+def createSiameseModel_mobilenet_noWeights(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
+    inputs = keras.Input(shape=input_shape)
 
+    model = MobileNet_WithTop_NoWeights(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation)
+    siamese_model = createSiameseModel(model, input_shape)
+
+    return siamese_model
         
 def createSiameseModel_mobilenet_alt(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
     inputs = keras.Input(shape=input_shape)

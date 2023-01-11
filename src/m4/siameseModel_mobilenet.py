@@ -13,7 +13,7 @@ from create_siameseModel import createSiameseModel_mobilenet, contrastive_loss_w
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_mobilenet'
+model_name = 'siamese_model_mobilenet_0,5margin2'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
@@ -100,7 +100,7 @@ keras.utils.plot_model(siamese_model, to_file=f'{model_name}.png', show_layer_ac
 siamese_model.summary()
 
 siamese_model.compile(
-            loss=contrastive_loss_with_margin(margin=1.0),
+            loss=contrastive_loss_with_margin(margin=0.5),
             optimizer=keras.optimizers.Adam(learning_rate=learningRate), 
             )
 

@@ -59,8 +59,8 @@ callbacks = [
 ]
 
 # Data parameters
-image_height = 128
-image_width = 128
+image_height = 150
+image_width = 150
 
 # ----------------------------------- DATASETS ----------------------------------- #
 

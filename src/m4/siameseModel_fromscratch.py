@@ -11,7 +11,7 @@ from create_siameseModel import createSiameseModel_fromScratch, contrastive_loss
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_fromScratch'
+model_name = 'siamese_model_fromScratch_margin0,5'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
@@ -37,8 +37,8 @@ epochs = 100
 validation_split = 0.2
 
 # Data parameters
-image_height = 128
-image_width = 128
+image_height = 150
+image_width = 150
 
 decay = learningRate/epochs
 
@@ -93,7 +93,7 @@ np.random.shuffle(val_pair_labels)
 # ------------------------------- CREATING AND COMPILING MODEL ------------------------------- #
 
 siamese_model = createSiameseModel_fromScratch((image_height, image_width, 1), doDataAugmentation)
-# keras.utils.plot_model(siamese_model, to_file=f'{model_name}.png', show_layer_activations=True)
+keras.utils.plot_model(siamese_model, to_file=f'siamese_model.png', show_layer_activations=True)
 siamese_model.summary()
 
 siamese_model.compile(

@@ -86,7 +86,7 @@ np.random.shuffle(val_pair_labels)
 # ------------------------------- CREATING AND COMPILING MODEL ------------------------------- #
 
 siamese_model = createSiameseModel_fromScratch_alt((image_height, image_width, 1), doDataAugmentation)
-keras.utils.plot_model(siamese_model, to_file=f'{model_name}.png', show_layer_activations=True)
+keras.utils.plot_model(siamese_model, to_file=f'siamese_model_alt.png', show_layer_activations=True)
 siamese_model.summary()
 
 siamese_model.compile(

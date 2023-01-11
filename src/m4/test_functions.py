@@ -1,4 +1,6 @@
 
+# ------------------------------- IMPORTS ------------------------------- #
+
 import tensorflow as tf
 from tensorflow import keras
 from loadData import createDataset, createDataframe, generate_image_pairs, get_label, load_img
@@ -7,23 +9,17 @@ import numpy as np
 import pandas as pd
 import os
 
-def create_img_batch(img_path, image_size, grayscale=False):
-    color_mode = 'rgb'
-    if grayscale==True: color_mode = 'grayscale'
+# ------------------------------- UTILITY FUNCTIONS ------------------------------- #
 
-    # Loading and preprocessing the image
-    img = tf.keras.utils.load_img(
-        img_path, target_size=image_size, color_mode=color_mode
-    )
-
-    img_array = tf.keras.utils.img_to_array(img)
+def create_img_batch(img_array):
     img_array_batch = tf.expand_dims(img_array, 0) # Create a batch
-
     return img_array_batch
 
 def compute_accuracy(y_true, y_pred):
     pred = y_pred.ravel() < 0.5
     return np.mean(pred == y_true)
+
+# ------------------------------- PREDICTION FUNCTIONS ------------------------------- #
 
 def get_img_similarity_prediction(model, img1, img2):
     # Let the model make a prediction for the image
@@ -32,7 +28,7 @@ def get_img_similarity_prediction(model, img1, img2):
     # Getting a prediction for the image similarity percentage
     pred = round(preds[0][0], 4)
 
-    return 1-pred
+    return pred
 
 def get_img_prediction_asID(model, img, test_imgs, test_labels):
     # Creating a dictionary of all existing labels to save the predictions in
@@ -61,6 +57,10 @@ def get_img_prediction_asID(model, img, test_imgs, test_labels):
     # Returns the label with the highest similarity score
     return max(similarity_dict, key=similarity_dict.get)
 
+# ------------------------------- RESULTS EXPORT FUNCTIONS ------------------------------- #
+
+### This function makes a similarity prediction on all possible image combinations of all given images in the test directory. ###
+### The results will be saved in a data frame and exported as a CSV file. ###
 def export_similarity_results_to_CSV(model, model_path, test_dir, img_size, grayscale=False):
     img_names = []
     img_labels = []
@@ -80,17 +80,19 @@ def export_similarity_results_to_CSV(model, model_path, test_dir, img_size, gray
                 cmp_img_path = os.path.join(dirpath, cmp_filename)
 
                 img_names.append(filename)
+                cmp_img_names.append(cmp_filename)
+
                 label = get_label(filename)
                 img_labels.append(label)
-
-                cmp_img_names.append(cmp_filename)
                 cmp_label = get_label(cmp_filename)
                 cmp_img_labels.append(cmp_label)
 
-                img1 = create_img_batch(img_path, img_size, grayscale)
-                img2 = create_img_batch(cmp_img_path, img_size, grayscale)
+                img1 = load_img(img_path, img_size, grayscale, True)
+                img2 = load_img(cmp_img_path, img_size, grayscale, True)
+                img1_batch = create_img_batch(img1)
+                img2_batch = create_img_batch(img2)
 
-                pred = get_img_similarity_prediction(model, img1, img2)
+                pred = 1-round(get_img_similarity_prediction(model, img1_batch, img2_batch), 4)
                 preds.append(pred)
                 preds_round.append(round(pred, 0))
                 actual = int(label==cmp_label)
@@ -102,21 +104,23 @@ def export_similarity_results_to_CSV(model, model_path, test_dir, img_size, gray
     # Creating the data frame
     df = pd.DataFrame()
 
-    df['image'] = img_names
-    df['image_label'] = img_labels
-    df['cmp_image'] = cmp_img_names
-    df['cmp_image_label'] = cmp_img_labels
-    df['actual'] = actuals
-    df['pred'] = preds
-    df['pred_round'] = preds_round
-    df['pred_diff'] = pred_diffs
-    df['pred_diff_round'] = pred_diffs_round
+    df['image'] = img_names # Image file name
+    df['cmp_image'] = cmp_img_names # Compared image file name
+    df['image_label'] = img_labels # Image label (person ID)
+    df['cmp_image_label'] = cmp_img_labels # Compared image label (person ID)
+    df['actual'] = actuals # Actual similarity value (0 or 1)
+    df['pred'] = preds # Similarity prediction
+    df['pred_round'] = preds_round # Rounded similarity prediction (0 or 1)
+    df['pred_diff'] = pred_diffs # (Absolute) Difference of prediction vs the actual value
+    df['pred_diff_round'] = pred_diffs_round # Rounded difference of prediction vs the actual value (0 or 1)
 
     # Exporting the data frame as a CSV file
     df.to_csv(f'{model_path}eval_similarity_results.csv')
 
     print(df)
 
+### This function makes a person ID prediction for each image given in the test directory. ###
+### The results will be saved in a data frame and exported as a CSV file. ###
 def export_id_results_to_CSV(model, model_path, test_dir, img_size, grayscale=False):
     img_names = []
     img_labels = []
@@ -142,10 +146,10 @@ def export_id_results_to_CSV(model, model_path, test_dir, img_size, grayscale=Fa
     # Creating the data frame
     df = pd.DataFrame()
 
-    df['image'] = img_names
-    df['image_label'] = img_labels
-    df['pred'] = preds
-    df['pred_diff'] = pred_diffs
+    df['image'] = img_names # Image file name
+    df['image_label'] = img_labels # Image label (person ID)
+    df['pred'] = preds # Label prediction
+    df['pred_diff'] = pred_diffs # Difference of prediction vs the actual value (0 or 1)
 
     # Exporting the data frame as a CSV file
     df.to_csv(f'{model_path}eval_id_results.csv')

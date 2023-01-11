@@ -97,7 +97,7 @@ siamese_model = createSiameseModel_fromScratch((image_height, image_width, 1), d
 siamese_model.summary()
 
 siamese_model.compile(
-            loss=contrastive_loss_with_margin(margin=1), 
+            loss=contrastive_loss_with_margin(margin=0.5), 
             optimizer=keras.optimizers.Adam(learning_rate=learningRate), 
             # metrics='binary_accuracy'
             )

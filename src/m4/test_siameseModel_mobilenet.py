@@ -42,8 +42,8 @@ print(f'Predictions Accuracy: {test_accuracy}')
 
 # ------------------------------- EXPORTING MODEL PREDICTIONS ON TEST DATA ------------------------------- #
 
-#export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
-#export_similarity_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
+export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
+export_similarity_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
 
 # ------------------------------- MODEl SINGLE PREDICTION ------------------------------- #
 

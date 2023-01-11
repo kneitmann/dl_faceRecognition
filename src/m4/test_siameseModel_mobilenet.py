@@ -1,9 +1,9 @@
 # ------------------------------- IMPORTS ------------------------------- #
 
-from loadData import createDataset, createDataframe, generate_image_pairs
+from loadData import createDataset, createDataframe, generate_image_pairs, get_label
 
 from create_siameseModel import createSiameseModel_mobilenet, contrastive_loss_with_margin, contrastive_loss_with_margin2
-from test_functions import compute_accuracy, export_id_results_to_CSV, export_similarity_results_to_CSV, get_img_similarity_prediction
+from test_functions import compute_accuracy, export_id_results_to_CSV, export_similarity_results_to_CSV, get_img_similarity_prediction, create_img_batch
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
@@ -18,7 +18,7 @@ image_width = 160
 # ------------------------------- MODEl EVALUATION ON TEST DATA ------------------------------- #
 
 siamese_model = createSiameseModel_mobilenet((image_height, image_width, 3), 1, 1, 0.3, False)
-siamese_model.compile(loss=contrastive_loss_with_margin2(margin=0.1), optimizer='adam')
+siamese_model.compile(loss=contrastive_loss_with_margin(margin=0.5), optimizer='adam')
 siamese_model.load_weights(model_path + f'{model_name}.h5')
 
 x, y = createDataset(test_dir, (image_height, image_width))
@@ -32,24 +32,22 @@ print(f'Accuracy: {test_accuracy}')
 
 # ------------------------------- EXPORTING MODEL PREDICTIONS ON TEST DATA ------------------------------- #
 
-export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
+#export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
 export_similarity_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
 
 # ------------------------------- MODEl SINGLE PREDICTION ------------------------------- #
 
 # Getting the image path for image to predict
 img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/1_2.jpg')
-img_path_split = img_paths[0].split('/')
-img_name = img_path_split[len(img_path_split)-1]
-img_name_split = img_name.split('_')
 
-# Getting the actual age from the file name
-if(len(img_name_split) > 1 and str.isnumeric(img_name_split[0])):
-    actual = img_name_split[0]
-else:
-    actual = '?'
+# Getting the actual id from the file name
+person1_id = get_label(img_paths[0])
+person2_id = get_label(img_paths[1])
 
-pred = get_img_similarity_prediction(siamese_model, img_paths, (image_height, image_width))
+img1 = create_img_batch(img_paths[0], (image_height, image_width))
+img2 = create_img_batch(img_paths[1], (image_height, image_width))
+
+pred = get_img_similarity_prediction(siamese_model, img1, img2)
 print(f'Similarity: {pred}%')
 
 # Showing the image with the corresponding predictions

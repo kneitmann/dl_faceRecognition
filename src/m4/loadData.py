@@ -79,6 +79,31 @@ def generate_image_pairs(images_dataset, labels_dataset):
 
     return np.array(pair_images), np.array(pair_labels)
     
+def generate_image_pairs_tf(images_dataset, labels_dataset):
+    unique_labels = np.unique(labels_dataset)
+    label_wise_indices = dict()
+    for label in unique_labels:
+        label_wise_indices.setdefault(label,
+                                      [index for index, curr_label in enumerate(labels_dataset) if
+                                       label == curr_label])
+    
+    pair_images = []
+    pair_labels = []
+    for index, image in enumerate(images_dataset):
+        pos_indices = label_wise_indices.get(labels_dataset[index])
+        rndm_pos_index = np.random.choice(pos_indices)
+        pos_image = images_dataset[rndm_pos_index]
+        pair_images.append((image, pos_image))
+        pair_labels.append(1.0)
+
+        neg_indices = np.where(labels_dataset != labels_dataset[index])
+        rndm_neg_index = np.random.choice(neg_indices[0])
+        neg_image = images_dataset[rndm_neg_index]
+        pair_images.append((image, neg_image))
+        pair_labels.append(0.0)
+
+    return tf.data.Dataset.from_tensor_slices(pair_images), tf.data.Dataset.from_tensor_slices(pair_labels)
+    
 def generate_image_pairs_alt(images_dataset, labels_dataset, min_equals = 1000):
     pairs = []
     labels = []
@@ -133,3 +158,28 @@ def createDataset(dir, img_size, grayscale=False):
     np.random.shuffle(labels)
 
     return np.array(images), np.array(labels)
+
+def createDataset_tf(dir, img_size, grayscale=False):
+    labels = []
+    images = []
+    image_names = []
+
+    for dirpath, dirs, files in os.walk(dir): 
+        for filename in files:
+            file_path = os.path.join(dirpath, filename)
+            label = get_label(filename)
+            labels.append(label)
+
+            img = load_img(file_path, img_size, grayscale)
+            images.append(img)
+            image_names.append(filename)
+
+    assert len(images) == len(labels)
+
+    # Shuffling the data
+    np.random.seed(123)
+    np.random.shuffle(images)
+    np.random.seed(123)
+    np.random.shuffle(labels)
+
+    return tf.data.Dataset.from_tensor_slices(images), tf.data.Dataset.from_tensor_slices(labels)

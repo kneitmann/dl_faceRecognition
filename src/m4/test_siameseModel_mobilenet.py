@@ -1,14 +1,14 @@
 # ------------------------------- IMPORTS ------------------------------- #
 
 import matplotlib.pyplot as plt
-from loadData import createDataset, createDataframe, generate_image_pairs, get_label, load_img
+from loadData import createDataset, generate_image_pairs, get_label, load_img
 
 from create_siameseModel import createSiameseModel_mobilenet_weighted, createSiameseModel_mobilenet_noWeights, contrastive_loss_with_margin, contrastive_loss_with_margin2
-from test_functions import compute_accuracy, export_id_results_to_CSV, export_similarity_results_to_CSV, get_img_similarity_prediction, create_img_batch
+from test_functions import compute_accuracy, export_id_results_to_CSV, export_similarity_results_to_CSV, get_img_similarity_prediction
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
-model_name = 'siamese_model_mobilenet'
+model_name = 'siamese_model_mobilenet_0,3margin_weighted'
 model_path = f'./log/saved_models/{model_name}/'
 model_weights_path = f'./log/cps/{model_name}/{model_name}'
 test_dir = './data/m4_manyOne/testKnownShort/'
@@ -42,13 +42,13 @@ print(f'Predictions Accuracy: {test_accuracy}')
 
 # ------------------------------- EXPORTING MODEL PREDICTIONS ON TEST DATA ------------------------------- #
 
-export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
-export_similarity_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
+# export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
+# export_similarity_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
 
-# ------------------------------- MODEl SINGLE PREDICTION ------------------------------- #
+# ------------------------------- MODEL SINGLE PREDICTION ------------------------------- #
 
 # Getting the image path for image to predict
-img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/1_2.jpg')
+img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/7_14.jpg')
 
 img_path1_split = img_paths[0].split('/')
 img_path2_split = img_paths[1].split('/')
@@ -59,12 +59,10 @@ img2_name = img_path1_split[len(img_path2_split)-1]
 person1_id = get_label(img1_name)
 person2_id = get_label(img2_name)
 
-img1 = load_img(img_paths[0], (image_height, image_width), grayscale=False, preprocess_img=False)
-img2 = load_img(img_paths[1], (image_height, image_width), grayscale=False, preprocess_img=False)
-img1_batch = create_img_batch(img1)
-img2_batch = create_img_batch(img2)
+img1 = load_img(img_paths[0], (image_height, image_width), grayscale=False, preprocess_img=True)
+img2 = load_img(img_paths[1], (image_height, image_width), grayscale=False, preprocess_img=True)
 
-pred = get_img_similarity_prediction(siamese_model, img1_batch, img2_batch)
+pred = round(get_img_similarity_prediction(siamese_model, img1, img2), 4)
 print(f'Similarity: {pred}%')
 
 # Showing the image with the similarity prediction

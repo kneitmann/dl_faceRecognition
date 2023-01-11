@@ -3,17 +3,13 @@
 
 import tensorflow as tf
 from tensorflow import keras
-from loadData import createDataset, createDataframe, generate_image_pairs, get_label, load_img
+from loadData import createDataset, createDataframe, generate_image_pairs, get_label, load_img, create_img_batch
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
 
 # ------------------------------- UTILITY FUNCTIONS ------------------------------- #
-
-def create_img_batch(img_array):
-    img_array_batch = tf.expand_dims(img_array, 0) # Create a batch
-    return img_array_batch
 
 def compute_accuracy(y_true, y_pred):
     pred = y_pred.ravel() < 0.5
@@ -22,8 +18,11 @@ def compute_accuracy(y_true, y_pred):
 # ------------------------------- PREDICTION FUNCTIONS ------------------------------- #
 
 def get_img_similarity_prediction(model, img1, img2):
+    img1_batch = create_img_batch(img1)
+    img2_batch = create_img_batch(img2)
+
     # Let the model make a prediction for the image
-    preds = model.predict([img1, img2])
+    preds = model.predict([img1_batch, img2_batch])
 
     # Getting a prediction for the image similarity percentage
     pred = round(preds[0][0], 4)
@@ -89,10 +88,8 @@ def export_similarity_results_to_CSV(model, model_path, test_dir, img_size, gray
 
                 img1 = load_img(img_path, img_size, grayscale, True)
                 img2 = load_img(cmp_img_path, img_size, grayscale, True)
-                img1_batch = create_img_batch(img1)
-                img2_batch = create_img_batch(img2)
 
-                pred = 1-round(get_img_similarity_prediction(model, img1_batch, img2_batch), 4)
+                pred = 1-round(get_img_similarity_prediction(model, img1, img2), 4)
                 preds.append(pred)
                 preds_round.append(round(pred, 0))
                 actual = int(label==cmp_label)

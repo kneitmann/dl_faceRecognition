@@ -34,11 +34,15 @@ def load_img(img_path, img_size, grayscale=False, preprocess_img=False):
             )
 
     img = keras.utils.img_to_array(img)
-    
+
     if(preprocess_img):
         img = keras.applications.mobilenet.preprocess_input(img)
     
     return img
+
+def create_img_batch(img_array):
+    img_array_batch = tf.expand_dims(img_array, 0) # Create a batch
+    return img_array_batch
 
 def createDataframe(dir):
     image_paths = []

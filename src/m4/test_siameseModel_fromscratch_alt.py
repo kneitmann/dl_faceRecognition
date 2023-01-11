@@ -1,10 +1,10 @@
 # ------------------------------- IMPORTS ------------------------------- #
 
 import matplotlib.pyplot as plt
-from loadData import createDataset, createDataframe, generate_image_pairs, get_label, load_img
+from loadData import createDataset, generate_image_pairs, get_label, load_img
 
 from create_siameseModel import createSiameseModel_fromScratch_alt, contrastive_loss_with_margin
-from test_functions import export_similarity_results_to_CSV, export_id_results_to_CSV, get_img_similarity_prediction, create_img_batch, compute_accuracy
+from test_functions import export_similarity_results_to_CSV, export_id_results_to_CSV, get_img_similarity_prediction, compute_accuracy
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
@@ -54,10 +54,8 @@ person2_id = get_label(img2_name)
 
 img1 = load_img(img_paths[0], (image_height, image_width), grayscale=False, preprocess_img=False)
 img2 = load_img(img_paths[1], (image_height, image_width), grayscale=False, preprocess_img=False)
-img1_batch = create_img_batch(img1)
-img2_batch = create_img_batch(img2)
 
-pred = get_img_similarity_prediction(siamese_model, img1_batch, img2_batch)
+pred = get_img_similarity_prediction(siamese_model, img1, img2)
 print(f'Similarity: {pred}%')
 
 # Showing the image with the similarity prediction

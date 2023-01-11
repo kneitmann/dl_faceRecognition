@@ -13,12 +13,12 @@ from create_siameseModel import createSiameseModel_mobilenet_weighted, createSia
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_mobilenet'
+model_name = 'siamese_model_mobilenet_binaryloss'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
-training_data_path = './data/m4_manyOne10/training/'
-validation_data_path = './data/m4_manyOne10/validation/'
+training_data_path = './data/m4_manyOne/training/'
+validation_data_path = './data/m4_manyOne/validation/'
 
 if not os.path.exists(cp_filepath):
     os.makedirs(cp_filepath)
@@ -37,7 +37,7 @@ depth_multiplier = 1
 batch_size = 64
 epochs = 100
 validation_split = 0.2
-useWeights = True
+useWeights = False
 decay = learningRate/epochs
 
 def lr_time_decay(epoch, lr):
@@ -104,7 +104,9 @@ keras.utils.plot_model(siamese_model, to_file=f'siamese_model.png', show_layer_a
 siamese_model.summary()
 
 siamese_model.compile(
-            loss=contrastive_loss_with_margin(margin=0.3),
+            # loss=contrastive_loss_with_margin(margin=0.3),
+            loss='binary_crossentropy',
+            metrics='accuracy',
             optimizer=keras.optimizers.Adam(learning_rate=learningRate), 
             )
 

@@ -89,7 +89,7 @@ def export_similarity_results_to_CSV(model, model_path, test_dir, img_size, gray
                 img1 = load_img(img_path, img_size, grayscale, False)
                 img2 = load_img(cmp_img_path, img_size, grayscale, False)
 
-                pred = get_img_similarity_prediction(model, img1, img2)
+                pred = 1-get_img_similarity_prediction(model, img1, img2)
                 preds.append(pred)
                 preds_round.append(round(pred, 0))
                 actual = int(label==cmp_label)

@@ -35,6 +35,7 @@ depth_multiplier = 1
 batch_size = 64
 epochs = 100
 validation_split = 0.2
+margin=1.0
 
 callbacks = [
     # Checkpoint callback                    
@@ -90,9 +91,9 @@ keras.utils.plot_model(siamese_model, to_file=f'siamese_model_alt.png', show_lay
 siamese_model.summary()
 
 siamese_model.compile(
-            loss=contrastive_loss_with_margin(margin=1),
+            # loss='binary_crossentropy',
+            loss=contrastive_loss_with_margin(margin=margin),
             optimizer=keras.optimizers.RMSprop(learning_rate=learningRate),
-            # metrics='mse'
             )
 
 

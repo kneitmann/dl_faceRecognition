@@ -61,6 +61,7 @@ def createDataframe(dir):
     return df
 
 def generate_image_pairs(images_dataset, labels_dataset):
+    # Making a dictionary where all the indeces of each label in the dataset is saved
     unique_labels = np.unique(labels_dataset)
     label_wise_indices = dict()
     for label in unique_labels:
@@ -68,52 +69,65 @@ def generate_image_pairs(images_dataset, labels_dataset):
                                       [index for index, curr_label in enumerate(labels_dataset) if
                                        label == curr_label])
     
+    # Creating the image pairs and labeling them
     pair_images = []
     pair_labels = []
     for index, image in enumerate(images_dataset):
+        # Positive pair
         pos_indices = label_wise_indices.get(labels_dataset[index])
         rndm_pos_index = np.random.choice(pos_indices)
         pos_image = images_dataset[rndm_pos_index]
-        pair_images.append((image, pos_image))
-        pair_labels.append(1.0)
+        pair_images += [[image, pos_image]]
+        pair_labels += [0]
 
+        # Negative pair
         neg_indices = np.where(labels_dataset != labels_dataset[index])
         rndm_neg_index = np.random.choice(neg_indices[0])
         neg_image = images_dataset[rndm_neg_index]
-        pair_images.append((image, neg_image))
-        pair_labels.append(0.0)
+        pair_images += [[image, neg_image]]
+        pair_labels += [1]
 
-    return np.array(pair_images), np.array(pair_labels)
-   
-def generate_image_pairs_alt(images_dataset, labels_dataset, min_equals = 1000):
-    pairs = []
-    labels = []
-    equal_items = 0
-    
-    #index with all the positions containing a same value
-    # Index[1] all the positions with values equals to 1
-    # Index[2] all the positions with values equals to 2
-    #.....
-    # Index[9] all the positions with values equals to 9 
-    index = [np.where(labels_dataset == i)[0] for i in range(10)]
-    
-    for n_item in range(len(images_dataset)): 
-        if equal_items < min_equals:
-            #Select the number to pair from index containing equal values. 
-            num_rnd = np.random.randint(len(index[labels_dataset[n_item]]))
-            num_item_pair = index[labels_dataset[n_item]][num_rnd]
+    return np.array(pair_images), np.array(pair_labels).astype("float32")
 
-            equal_items += 1
-        else: 
-            #Select any number in the list 
-            num_item_pair = np.random.randint(len(images_dataset))
-            
-        #I'm not checking that numbers is different. 
-        #That's why I calculate the label depending if values are equal. 
-        labels += [int(labels_dataset[n_item] == labels_dataset[num_item_pair])]         
-        pairs += [[images_dataset[n_item], images_dataset[num_item_pair]]]
-            
-    return np.array(pairs), np.array(labels).astype('float32') 
+def generate_image_pairs_tf(images_dataset, labels_dataset, batch_size, shuffle=False):
+    # Making a dictionary where all the indeces of each label in the dataset is saved
+    unique_labels = np.unique(labels_dataset)
+    label_wise_indices = dict()
+    for label in unique_labels:
+        label_wise_indices.setdefault(label,
+                                      [index for index, curr_label in enumerate(labels_dataset) if
+                                       label == curr_label])
+    
+    # Creating the image pairs and labeling them
+    pair_images = []
+    pair_labels = []
+    for index, image in enumerate(images_dataset):
+        # Positive pair
+        pos_indices = label_wise_indices.get(labels_dataset[index])
+        rndm_pos_index = np.random.choice(pos_indices)
+        pos_image = images_dataset[rndm_pos_index]
+        pair_images += [[image, pos_image]]
+        pair_labels += [0.0]
+
+        # Negative pair
+        neg_indices = np.where(labels_dataset != labels_dataset[index])
+        rndm_neg_index = np.random.choice(neg_indices[0])
+        neg_image = images_dataset[rndm_neg_index]
+        pair_images += [[image, neg_image]]
+        pair_labels += [1.0]
+
+    if shuffle:
+        np.random.seed(42)
+        np.random.shuffle(pair_images)
+        np.random.seed(42)
+        np.random.shuffle(pair_labels)
+
+    images_ds = tf.data.Dataset.from_tensor_slices((np.array(pair_images)[:, 0], np.array(pair_images)[:, 1]))
+    labels_ds = tf.data.Dataset.from_tensor_slices(pair_labels)
+
+    dataset = tf.data.Dataset.zip((images_ds, labels_ds)).batch(batch_size)
+
+    return dataset
 
 def createDataset(dir, img_size, grayscale=False):
     labels = []
@@ -126,16 +140,16 @@ def createDataset(dir, img_size, grayscale=False):
             label = get_label(filename)
             labels.append(label)
 
-            img = load_img(file_path, img_size, grayscale)
+            img = load_img(file_path, img_size, grayscale, preprocess_img=False)
             images.append(img)
             image_names.append(filename)
 
-    assert len(images) == len(labels)
+    assert len(images) == len(labels)        
 
     # Shuffling the data
-    np.random.seed(123)
-    np.random.shuffle(images)
-    np.random.seed(123)
-    np.random.shuffle(labels)
+    # np.random.seed(123)
+    # np.random.shuffle(images)
+    # np.random.seed(123)
+    # np.random.shuffle(labels)
 
-    return np.array(images), np.array(labels)
+    return images, labels

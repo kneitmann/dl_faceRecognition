@@ -3,12 +3,12 @@
 import matplotlib.pyplot as plt
 from loadData import createDataset, generate_image_pairs, get_label, load_img
 
-from create_siameseModel import createSiameseModel_mobilenet, contrastive_loss_with_margin, contrastive_loss_with_margin_alt
+from create_siameseModel import createSiameseModel_resnet, contrastive_loss_with_margin, contrastive_loss_with_margin_alt
 from test_functions import compute_accuracy, export_id_results_to_CSV, export_similarity_results_to_CSV, get_img_similarity_prediction
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
-model_name = 'siamese_model_mobilenet_kerasExample_margin0,5_weights_50'
+model_name = 'siamese_model_resnet_test'
 model_path = f'./log/saved_models/{model_name}/'
 model_weights_path = f'./log/cps/{model_name}/{model_name}'
 test_dir = './data/m4_manyOne/testKnownShort/'
@@ -16,14 +16,14 @@ batch_size = 4
 image_height = 160
 image_width = 160
 
-margin = 0.5
+margin = 1.0
 weighted = True
 
 # ------------------------------- MODEl EVALUATION ON TEST DATA ------------------------------- #
 
-siamese_model = createSiameseModel_mobilenet((image_height, image_width, 3), 1, 1, 0.3, False, weighted)
+siamese_model = createSiameseModel_resnet((image_height, image_width, 3), 0.3, False, weighted)
 
-siamese_model.compile(loss=contrastive_loss_with_margin_alt(margin=margin), optimizer='adam')
+siamese_model.compile(loss='binary_crossentropy', optimizer='RMSprop')
 siamese_model.load_weights(model_path + f'{model_name}.h5')
 
 x, y = createDataset(test_dir, (image_height, image_width))

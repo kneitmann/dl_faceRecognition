@@ -41,9 +41,7 @@ def contrastive_loss_with_margin_alt(margin):
     def contrastive_loss(y_true, y_pred):
         square_pred = tf.math.square(y_pred)
         margin_square = tf.math.square(tf.math.maximum(margin - (y_pred), 0))
-        return tf.reduce_mean(
-            (1 - y_true) * square_pred + (y_true) * margin_square
-        )
+        return tf.math.reduce_mean((1 - y_true) * square_pred + (y_true) * margin_square)
     return contrastive_loss
 # ------------------------------- CNN MODELS ------------------------------- #
 

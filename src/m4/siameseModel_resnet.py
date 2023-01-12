@@ -13,7 +13,7 @@ from create_siameseModel import createSiameseModel_resnet, contrastive_loss_with
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_resnet_test'
+model_name = 'siamese_model_resnet_weights'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
@@ -27,7 +27,7 @@ if not os.path.exists(savedModelPath):
     os.makedirs(savedModelPath)
 
 # Dynamic hyperparameters
-learningRate = 0.0005
+learningRate = 0.001
 doDataAugmentation = False
 dropoutRate = 0.3
 width_multiplier = 1
@@ -35,9 +35,9 @@ depth_multiplier = 1
 
 # Training parameters
 batch_size = 32
-epochs = 30
+epochs = 10
 validation_split = 0.2
-useWeights = False
+useWeights = True
 margin=1.0
 decay = learningRate/epochs
 
@@ -101,7 +101,7 @@ np.random.shuffle(val_pair_labels)
 
 siamese_model = createSiameseModel_resnet((image_height, image_width, 3), dropoutRate, doDataAugmentation, useWeights)
 
-keras.utils.plot_model(siamese_model, to_file=f'siamese_model.png', show_layer_activations=True)
+#keras.utils.plot_model(siamese_model, to_file=f'siamese_model.png', show_layer_activations=True)
 siamese_model.summary()
 
 siamese_model.compile(

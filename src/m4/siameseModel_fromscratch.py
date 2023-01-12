@@ -6,17 +6,17 @@ import numpy as np
 from tensorflow import keras
 
 from loadData import createDataset, generate_image_pairs
-from create_siameseModel import createSiameseModel_fromScratch, contrastive_loss_with_margin
+from create_siameseModel import createSiameseModel_fromScratch, contrastive_loss_with_margin, contrastive_loss_with_margin_alt
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_fromScratch_margin0,5'
+model_name = 'siamese_model_fromScratch_test_50'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
-training_data_path = './data/m4_manyOne10/training/'
-validation_data_path = './data/m4_manyOne10/validation/'
+training_data_path = './data/m4_manyOne/training/'
+validation_data_path = './data/m4_manyOne/validation/'
 
 if not os.path.exists(cp_filepath):
     os.makedirs(cp_filepath)
@@ -30,15 +30,17 @@ doDataAugmentation = False
 dropoutRate = 0.3
 width_multiplier = 1
 depth_multiplier = 1
+useWeights = False
 
 # Training parameters
-batch_size = 64
-epochs = 100
+batch_size = 32
+epochs = 50
 validation_split = 0.2
+margin=1.0
 
 # Data parameters
-image_height = 150
-image_width = 150
+image_height = 128
+image_width = 128
 
 decay = learningRate/epochs
 
@@ -97,9 +99,10 @@ keras.utils.plot_model(siamese_model, to_file=f'siamese_model.png', show_layer_a
 siamese_model.summary()
 
 siamese_model.compile(
-            loss=contrastive_loss_with_margin(margin=0.5), 
-            optimizer=keras.optimizers.Adam(learning_rate=learningRate), 
-            # metrics='binary_accuracy'
+            # loss='binary_crossentropy',
+            loss=contrastive_loss_with_margin_alt(margin=margin),
+            optimizer=keras.optimizers.RMSprop(learning_rate=learningRate),
+            metrics=["accuracy"]
             )
 
 

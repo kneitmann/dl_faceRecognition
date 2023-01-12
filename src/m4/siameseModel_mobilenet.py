@@ -101,7 +101,7 @@ np.random.shuffle(val_pair_labels)
 
 siamese_model = createSiameseModel_mobilenet((image_height, image_width, 3), width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation, useWeights)
 
-keras.utils.plot_model(siamese_model, to_file=f'siamese_model.png', show_layer_activations=True)
+#keras.utils.plot_model(siamese_model, to_file=f'siamese_model.png', show_layer_activations=True)
 siamese_model.summary()
 
 siamese_model.compile(

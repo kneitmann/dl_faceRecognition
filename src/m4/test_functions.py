@@ -50,11 +50,11 @@ def get_img_prediction_asID(model, img, test_imgs, test_labels):
     for i, label in enumerate(test_labels):
         # Getting a prediction for the image similarity percentage 
         # and adding the value to the similarity dictionary
-        pred = 1-round(preds[i][0], 4)
+        pred = round(preds[i][0], 4)
         similarity_dict[label] += pred
 
     # Returns the label with the highest similarity score
-    return max(similarity_dict, key=similarity_dict.get)
+    return min(similarity_dict, key=similarity_dict.get)
 
 # ------------------------------- RESULTS EXPORT FUNCTIONS ------------------------------- #
 

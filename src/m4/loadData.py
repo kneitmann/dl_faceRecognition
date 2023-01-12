@@ -146,10 +146,4 @@ def createDataset(dir, img_size, grayscale=False):
 
     assert len(images) == len(labels)        
 
-    # Shuffling the data
-    # np.random.seed(123)
-    # np.random.shuffle(images)
-    # np.random.seed(123)
-    # np.random.shuffle(labels)
-
     return np.array(images), np.array(labels)

@@ -8,21 +8,21 @@ from test_functions import export_similarity_results_to_CSV, export_id_results_t
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
-model_name = 'siamese_model_fromScratch_test'
+model_name = 'siamese_model_fromScratch_margin1,0'
 model_path = f'./log/saved_models/{model_name}/'
 model_weights_path = f'./log/cps/{model_name}/{model_name}'
 test_dir = './data/m4_manyOne/testKnownShort/'
 batch_size = 4
-image_height = 128
-image_width = 128
+image_height = 160
+image_width = 160
 
-margin=0.5 
+margin=1.0
 
 # ------------------------------- MODEl EVALUATION ON TEST DATA ------------------------------- #
 
 siamese_model = createSiameseModel_fromScratch((image_height, image_width, 1), False)
-# siamese_model.compile(loss=contrastive_loss_with_margin_alt(margin=0.5), optimizer='RSMProp')
-siamese_model.compile(loss='binary_crossentropy', optimizer='RMSProp', metrics=['accuracy'])
+siamese_model.compile(loss=contrastive_loss_with_margin_alt(margin=margin), optimizer='RMSProp', metrics=['accuracy'])
+# siamese_model.compile(loss='binary_crossentropy', optimizer='RMSProp', metrics=['accuracy'])
 siamese_model.load_weights(model_path + f'{model_name}.h5')
 
 x, y = createDataset(test_dir, (image_height, image_width), grayscale=True)
@@ -33,8 +33,8 @@ loss = siamese_model.evaluate([x_pairs[:,0], x_pairs[:,1]], y_pairs)
 
 test_accuracy = compute_accuracy(y_pairs[:], preds)
 
-print(f'Loss: {loss}')
-#print(f'Predictions Accuracy: {acc}')
+print(f'Loss: {loss[0]}')
+print(f'Predictions Accuracy: {loss[1]}')
 
 # ------------------------------- EXPORTING MODEL PREDICTIONS ON TEST DATA ------------------------------- #
 

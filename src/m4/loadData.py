@@ -146,4 +146,4 @@ def createDataset(dir, img_size, grayscale=False):
 
     assert len(images) == len(labels)        
 
-    return images, labels
+    return np.array(images), np.array(labels)

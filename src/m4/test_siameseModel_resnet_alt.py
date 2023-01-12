@@ -3,27 +3,23 @@
 import matplotlib.pyplot as plt
 from loadData import createDataset, generate_image_pairs, get_label, load_img
 
-from create_siameseModel import createSiameseModel_mobilenet, contrastive_loss_with_margin, contrastive_loss_with_margin_alt
-from test_functions import compute_accuracy, export_id_results_to_CSV, export_similarity_results_to_CSV, get_img_similarity_prediction
+from create_siameseModel import createSiameseModel_resnet_alt, contrastive_loss_with_margin
+from test_functions import export_similarity_results_to_CSV, export_id_results_to_CSV, get_img_similarity_prediction, compute_accuracy
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
-model_name = 'siamese_model_mobilenet_kerasExample_margin0,5_weights_50'
+model_name = 'siamese_model_mobilenet_alt'
 model_path = f'./log/saved_models/{model_name}/'
-model_weights_path = f'./log/cps/{model_name}/{model_name}'
+model_weights_path = f'./log/cps/{model_name}/'
 test_dir = './data/m4_manyOne/testKnownShort/'
 batch_size = 4
 image_height = 160
 image_width = 160
 
-margin = 0.5
-weighted = True
-
 # ------------------------------- MODEl EVALUATION ON TEST DATA ------------------------------- #
 
-siamese_model = createSiameseModel_mobilenet((image_height, image_width, 3), 1, 1, 0.3, False, weighted)
-
-siamese_model.compile(loss=contrastive_loss_with_margin_alt(margin=margin), optimizer='adam')
+siamese_model = createSiameseModel_resnet_alt((image_height, image_width, 3), 1, 1, 0.3, False)
+siamese_model.compile(loss=contrastive_loss_with_margin, optimizer='adam')
 siamese_model.load_weights(model_path + f'{model_name}.h5')
 
 x, y = createDataset(test_dir, (image_height, image_width))
@@ -39,13 +35,13 @@ print(f'Predictions Accuracy: {test_accuracy}')
 
 # ------------------------------- EXPORTING MODEL PREDICTIONS ON TEST DATA ------------------------------- #
 
-# export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
-# export_similarity_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
+export_similarity_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
+export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
 
-# ------------------------------- MODEL SINGLE PREDICTION ------------------------------- #
+# ------------------------------- MODEl SINGLE PREDICTION ------------------------------- #
 
 # Getting the image path for image to predict
-img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/7_14.jpg')
+img_paths = ('./data/m4/test/1_1.jpg', './data/m4/test/1_2.jpg')
 
 img_path1_split = img_paths[0].split('/')
 img_path2_split = img_paths[1].split('/')
@@ -56,10 +52,10 @@ img2_name = img_path1_split[len(img_path2_split)-1]
 person1_id = get_label(img1_name)
 person2_id = get_label(img2_name)
 
-img1 = load_img(img_paths[0], (image_height, image_width), grayscale=False, preprocess_img=True)
-img2 = load_img(img_paths[1], (image_height, image_width), grayscale=False, preprocess_img=True)
+img1 = load_img(img_paths[0], (image_height, image_width), grayscale=False, preprocess_img=False)
+img2 = load_img(img_paths[1], (image_height, image_width), grayscale=False, preprocess_img=False)
 
-pred = round(get_img_similarity_prediction(siamese_model, img1, img2), 4)
+pred = get_img_similarity_prediction(siamese_model, img1, img2)
 print(f'Similarity: {pred}%')
 
 # Showing the image with the similarity prediction

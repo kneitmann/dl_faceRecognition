@@ -7,12 +7,12 @@ from tensorflow import keras
 import keras.backend as k
 
 from loadData import createDataset, generate_image_pairs
-from create_siameseModel import createSiameseModel_mobilenet_alt, contrastive_loss_with_margin, contrastive_loss_with_margin_alt
+from create_siameseModel import createSiameseModel_resnet_alt, contrastive_loss_with_margin, contrastive_loss_with_margin_alt
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_mobilenet_alt'
+model_name = 'siamese_model_resnet_alt'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}'
 cp_filepath = f'./log/cps/{model_name}/'
@@ -86,7 +86,7 @@ np.random.shuffle(val_pair_labels)
 
 # ------------------------------- CREATING AND COMPILING THE MODEL ------------------------------- #
 
-siamese_model = createSiameseModel_mobilenet_alt((image_height, image_width, 3), width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation)
+siamese_model = createSiameseModel_resnet_alt((image_height, image_width, 3), dropoutRate, doDataAugmentation)
 
 keras.utils.plot_model(siamese_model, to_file=f'siamese_model_alt.png', show_layer_activations=True)
 siamese_model.summary()

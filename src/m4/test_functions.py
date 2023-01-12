@@ -3,17 +3,13 @@
 
 import tensorflow as tf
 from tensorflow import keras
-from loadData import createDataset, createDataframe, generate_image_pairs, get_label, load_img
+from loadData import createDataset, createDataframe, generate_image_pairs, get_label, load_img, create_img_batch
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import os
 
 # ------------------------------- UTILITY FUNCTIONS ------------------------------- #
-
-def create_img_batch(img_array):
-    img_array_batch = tf.expand_dims(img_array, 0) # Create a batch
-    return img_array_batch
 
 def compute_accuracy(y_true, y_pred):
     pred = y_pred.ravel() < 0.5
@@ -22,8 +18,11 @@ def compute_accuracy(y_true, y_pred):
 # ------------------------------- PREDICTION FUNCTIONS ------------------------------- #
 
 def get_img_similarity_prediction(model, img1, img2):
+    img1_batch = create_img_batch(img1)
+    img2_batch = create_img_batch(img2)
+
     # Let the model make a prediction for the image
-    preds = model.predict([img1, img2])
+    preds = model.predict([img1_batch, img2_batch])
 
     # Getting a prediction for the image similarity percentage
     pred = round(preds[0][0], 4)
@@ -44,9 +43,9 @@ def get_img_prediction_asID(model, img, test_imgs, test_labels):
     for i, cmp_img in enumerate(test_imgs):
         img_pairs.append((img, cmp_img))
 
-    img_pairs = np.array(img_pairs)
+    img_pairs_nparr = np.array(img_pairs)
     # Making the predictions of all image pairs
-    preds = model.predict([img_pairs[:, 0], img_pairs[:, 1]])
+    preds = model.predict([img_pairs_nparr[:, 0], img_pairs_nparr[:, 1]])
   
     for i, label in enumerate(test_labels):
         # Getting a prediction for the image similarity percentage 
@@ -87,12 +86,10 @@ def export_similarity_results_to_CSV(model, model_path, test_dir, img_size, gray
                 cmp_label = get_label(cmp_filename)
                 cmp_img_labels.append(cmp_label)
 
-                img1 = load_img(img_path, img_size, grayscale, True)
-                img2 = load_img(cmp_img_path, img_size, grayscale, True)
-                img1_batch = create_img_batch(img1)
-                img2_batch = create_img_batch(img2)
+                img1 = load_img(img_path, img_size, grayscale, False)
+                img2 = load_img(cmp_img_path, img_size, grayscale, False)
 
-                pred = 1-round(get_img_similarity_prediction(model, img1_batch, img2_batch), 4)
+                pred = 1-get_img_similarity_prediction(model, img1, img2)
                 preds.append(pred)
                 preds_round.append(round(pred, 0))
                 actual = int(label==cmp_label)
@@ -127,7 +124,7 @@ def export_id_results_to_CSV(model, model_path, test_dir, img_size, grayscale=Fa
     preds = []
     pred_diffs = []
 
-    test_x, test_y = createDataset(test_dir, img_size)
+    test_x, test_y = createDataset(test_dir, img_size, grayscale=grayscale)
 
     # Making a prediction for the person ID for each image in the test dataset
     for dirpath, dirs, files in os.walk(test_dir): 
@@ -141,7 +138,7 @@ def export_id_results_to_CSV(model, model_path, test_dir, img_size, grayscale=Fa
             img = load_img(img_path, img_size, grayscale)
             pred = get_img_prediction_asID(model, img, test_x, test_y)
             preds.append(pred)
-            pred_diffs.append(int(pred==label))
+            pred_diffs.append(int(pred!=label))
 
     # Creating the data frame
     df = pd.DataFrame()

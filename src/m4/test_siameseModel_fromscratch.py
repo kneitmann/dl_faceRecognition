@@ -29,12 +29,9 @@ x, y = createDataset(test_dir, (image_height, image_width), grayscale=True)
 x_pairs, y_pairs = generate_image_pairs(x, y)
 
 preds = siamese_model.predict([x_pairs[:,0], x_pairs[:,1]])
-loss = siamese_model.evaluate([x_pairs[:,0], x_pairs[:,1]], y_pairs)
+results = siamese_model.evaluate([x_pairs[:,0], x_pairs[:,1]], y_pairs)
 
-test_accuracy = compute_accuracy(y_pairs[:], preds)
-
-print(f'Loss: {loss[0]}')
-print(f'Predictions Accuracy: {loss[1]}')
+print(f'Loss: {results[0]}; Accuracy: {results[1]}')
 
 # ------------------------------- EXPORTING MODEL PREDICTIONS ON TEST DATA ------------------------------- #
 

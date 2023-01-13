@@ -13,11 +13,11 @@ from create_siameseModel import createSiameseModel_mobilenet, contrastive_loss_w
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_mobilenet_weights_margin0,75'
+model_name = 'siamese_model_mobilenet_weights_frozen0,75_margin0,75_noprocess'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
-training_data_path = './data/m4_manyOne/training/cropped'
+training_data_path = './data/m4_manyOne/training/cropped/'
 validation_data_path = './data/m4_manyOne/validation/'
 
 if not os.path.exists(cp_filepath):
@@ -35,11 +35,12 @@ depth_multiplier = 1
 
 # Training parameters
 batch_size = 32
-epochs = 10
+epochs = 30
 validation_split = 0.2
 useWeights = True
-margin=0.75
+margin = 0.75
 decay = learningRate/epochs
+frozen_layers_percent = 0.75
 
 def lr_time_decay(epoch, lr):
     return lr*1/(1+decay*epoch)
@@ -65,23 +66,23 @@ callbacks = [
             mode="auto",
             baseline=None,
             restore_best_weights=True,
-            start_from_epoch=20,
+            start_from_epoch=10,
             )
 ]
 
 # Data parameters
-image_height = 140
-image_width = 140
+image_height = 128
+image_width = 128
 
 # ----------------------------------- DATASETS ----------------------------------- #
 
 # Creating the training and validation dataset
-train_images, train_labels = createDataset(training_data_path, (image_height, image_width), preprocess_data=True)
-val_images, val_labels = createDataset(validation_data_path, (image_height, image_width), preprocess_data=True)
+train_images, train_labels = createDataset(training_data_path, (image_height, image_width))
+# val_images, val_labels = createDataset(validation_data_path, (image_height, image_width), preprocess_data=True)
 
 # Creating the training image pairs and the corrsponding labels
 train_image_pairs, train_pair_labels = generate_image_pairs(train_images, train_labels)
-val_image_pairs, val_pair_labels = generate_image_pairs(val_images, val_labels)
+# val_image_pairs, val_pair_labels = generate_image_pairs(val_images, val_labels)
 
 # train_ds = generate_image_pairs_tf(train_images, train_labels, batch_size, True)
 # val_ds = generate_image_pairs_tf(val_images, val_labels, batch_size, True)
@@ -92,14 +93,17 @@ np.random.shuffle(train_image_pairs)
 np.random.seed(42)
 np.random.shuffle(train_pair_labels)
 
-np.random.seed(42)
-np.random.shuffle(val_image_pairs)
-np.random.seed(42)
-np.random.shuffle(val_pair_labels)
+# np.random.seed(42)
+# np.random.shuffle(val_image_pairs)
+# np.random.seed(42)
+# np.random.shuffle(val_pair_labels)
 
 # ------------------------------- CREATING AND COMPILING THE MODEL ------------------------------- #
 
-siamese_model = createSiameseModel_mobilenet((image_height, image_width, 3), width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation, useWeights)
+siamese_model = createSiameseModel_mobilenet(
+                    (image_height, image_width, 3), 
+                    width_multiplier, depth_multiplier, 
+                    dropoutRate, doDataAugmentation, useWeights, frozen_layers_percent)
 
 #keras.utils.plot_model(siamese_model, to_file=f'siamese_model.png', show_layer_activations=True)
 siamese_model.summary()
@@ -115,11 +119,8 @@ siamese_model.compile(
 # ------------------------------- TRAINING THE MODEL ------------------------------- #
 
 history = siamese_model.fit(
-            # train_ds,
-            # validation_data=val_ds,
             [train_image_pairs[:, 0], train_image_pairs[:, 1]],
             train_pair_labels[:],
-            #validation_data=([val_image_pairs[:, 0], val_image_pairs[:, 1]], val_pair_labels),
             validation_split=validation_split,
             batch_size=batch_size,
             epochs=epochs,

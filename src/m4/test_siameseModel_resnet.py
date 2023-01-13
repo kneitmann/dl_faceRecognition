@@ -37,7 +37,7 @@ print(f'Loss: {results[0]}; Accuracy: {results[1]}')
 
 # ------------------------------- EXPORTING MODEL PREDICTIONS ON TEST DATA ------------------------------- #
 
-#export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
+export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
 export_similarity_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
 
 # ------------------------------- MODEL SINGLE PREDICTION ------------------------------- #

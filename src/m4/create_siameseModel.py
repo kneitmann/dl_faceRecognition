@@ -43,22 +43,26 @@ def contrastive_loss_with_margin_alt(margin):
         margin_square = tf.math.square(tf.math.maximum(margin - (y_pred), 0))
         return tf.math.reduce_mean((1 - y_true) * square_pred + (y_true) * margin_square)
     return contrastive_loss
+
+def freeze_layers(model, freeze_layers_percentage):
+    for i in range(int(len(model.layers)*freeze_layers_percentage)):
+        model.layers[i].trainable = False
 # ------------------------------- CNN MODELS ------------------------------- #
 
 def MobileNet_Top(base_model, dropout_rate):
     # top_model = keras.layers.BatchNormalization()(base_model)
     # top_model = keras.layers.Activation('relu')(top_model)
     top_model = keras.layers.GlobalAveragePooling2D()(base_model)
-    top_model = keras.layers.Dense(1024)(top_model)
+    # top_model = keras.layers.Dense(1024)(top_model)
     # top_model = keras.layers.BatchNormalization()(top_model)
     # top_model = keras.layers.Activation('relu')(top_model)
-    # top_model = keras.layers.Dropout(dropout_rate)(top_model)
+    top_model = keras.layers.Dropout(dropout_rate)(top_model)
 
     # Add Dense layer
     top_model = tf.keras.layers.Dense(256, activation='relu')(top_model)
     # top_model = keras.layers.BatchNormalization()(top_model)
     # top_model = keras.layers.Activation('relu')(top_model)
-    # top_model = keras.layers.Dropout(dropout_rate)(top_model)
+    top_model = keras.layers.Dropout(dropout_rate)(top_model)
 
     outputs = tf.keras.layers.Dense(128, activation='relu')(top_model)
 
@@ -73,7 +77,7 @@ def ResNet_Top(base_model, dropout_rate):
     top_model = keras.layers.Activation('relu')(top_model)
     top_model = keras.layers.Dropout(dropout_rate)(top_model)
 
-    top_model = tf.keras.layers.Dense(256, activation='relu', kernel_regularizer=keras.regularizers.L1L2(l1=1e-5, l2=1e-4))(top_model)
+    top_model = tf.keras.layers.Dense(256, activation='relu')(top_model)
     top_model = keras.layers.BatchNormalization()(top_model)
     top_model = keras.layers.Activation('relu')(top_model)
     top_model = keras.layers.Dropout(dropout_rate)(top_model)
@@ -82,7 +86,7 @@ def ResNet_Top(base_model, dropout_rate):
 
     return outputs
 
-def MobileNet_WithTop_Weighted(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False):
+def MobileNet_WithTop_Weighted(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False, frozen_layers_percentage=1.0):
     # Loading either the MobileNet architecture model, and freeze it for transfer learning
     base = MobileNet(
                     input_shape=input_shape, # Optional shape tuple, only to be specified if include_top is False
@@ -93,7 +97,7 @@ def MobileNet_WithTop_Weighted(input_shape, width_multiplier, depth_multiplier, 
                     include_top=False
                     )
 
-    base.trainable = False
+    freeze_layers(base, frozen_layers_percentage)
 
     inputs = keras.Input(shape=input_shape)
 
@@ -286,9 +290,9 @@ def createSiameseModel_fromScratch_alt(input_shape, doDataAugmentation=False):
 
     return siamese_model
   
-def createSiameseModel_mobilenet(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False, use_weights=False):
+def createSiameseModel_mobilenet(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False, use_weights=False, frozen_layers_percentage=1.0):
     if(use_weights):
-        model = MobileNet_WithTop_Weighted(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation)
+        model = MobileNet_WithTop_Weighted(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation, frozen_layers_percentage)
     else:
         model = MobileNet_WithTop_NoWeights(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation)
 

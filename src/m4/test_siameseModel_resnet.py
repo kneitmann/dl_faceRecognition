@@ -8,7 +8,7 @@ from test_functions import compute_accuracy, export_id_results_to_CSV, export_si
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
-model_name = 'siamese_model_resnet_weights'
+model_name = 'siamese_model_resnet'
 model_path = f'./log/saved_models/{model_name}/'
 model_weights_path = f'./log/cps/{model_name}/{model_name}'
 test_dir = './data/m4_manyOne/testKnownShort/'
@@ -16,7 +16,7 @@ batch_size = 4
 image_height = 160
 image_width = 160
 
-margin = 1.0
+margin = 0.75
 weighted = True
 
 # ------------------------------- MODEl EVALUATION ON TEST DATA ------------------------------- #
@@ -31,16 +31,13 @@ x, y = createDataset(test_dir, (image_height, image_width))
 x_pairs, y_pairs = generate_image_pairs(x, y)
 
 preds = siamese_model.predict([x_pairs[:,0], x_pairs[:,1]])
-loss = siamese_model.evaluate([x_pairs[:,0], x_pairs[:,1]], y_pairs)
+results = siamese_model.evaluate([x_pairs[:,0], x_pairs[:,1]], y_pairs)
 
-test_accuracy = compute_accuracy(y_pairs[:], preds)
-
-print(f'Loss: {loss}')
-print(f'Predictions Accuracy: {test_accuracy}')
+print(f'Loss: {results[0]}; Accuracy: {results[1]}')
 
 # ------------------------------- EXPORTING MODEL PREDICTIONS ON TEST DATA ------------------------------- #
 
-export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
+#export_id_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
 export_similarity_results_to_CSV(siamese_model, model_path, test_dir, (image_height, image_width))
 
 # ------------------------------- MODEL SINGLE PREDICTION ------------------------------- #

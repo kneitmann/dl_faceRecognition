@@ -49,16 +49,16 @@ def MobileNet_Top(base_model, dropout_rate):
     # top_model = keras.layers.BatchNormalization()(base_model)
     # top_model = keras.layers.Activation('relu')(top_model)
     top_model = keras.layers.GlobalAveragePooling2D()(base_model)
-    # top_model = keras.layers.Dense(1024, kernel_regularizer=keras.regularizers.L1L2(l1=1e-5, l2=1e-4))(top_model)
-    top_model = keras.layers.BatchNormalization()(top_model)
-    top_model = keras.layers.Activation('relu')(top_model)
-    top_model = keras.layers.Dropout(dropout_rate)(top_model)
+    top_model = keras.layers.Dense(1024)(top_model)
+    # top_model = keras.layers.BatchNormalization()(top_model)
+    # top_model = keras.layers.Activation('relu')(top_model)
+    # top_model = keras.layers.Dropout(dropout_rate)(top_model)
 
     # Add Dense layer
     top_model = tf.keras.layers.Dense(256, activation='relu')(top_model)
-    top_model = keras.layers.BatchNormalization()(top_model)
-    top_model = keras.layers.Activation('relu')(top_model)
-    top_model = keras.layers.Dropout(dropout_rate)(top_model)
+    # top_model = keras.layers.BatchNormalization()(top_model)
+    # top_model = keras.layers.Activation('relu')(top_model)
+    # top_model = keras.layers.Dropout(dropout_rate)(top_model)
 
     outputs = tf.keras.layers.Dense(128, activation='relu')(top_model)
 
@@ -101,7 +101,7 @@ def MobileNet_WithTop_Weighted(input_shape, width_multiplier, depth_multiplier, 
     if(doDataAugmentation):
         inputs = data_augmentation(inputs)
 
-    base_model = base(inputs, training=False)
+    base_model = base(inputs)
     outputs = MobileNet_Top(base_model, dropoutRate)
 
     return keras.Model(inputs, outputs)

@@ -11,7 +11,7 @@ from create_siameseModel import createSiameseModel_fromScratch, contrastive_loss
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_fromScratch_margin1,0'
+model_name = 'siamese_model_fromScratch_margin0,5_preprocessed'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
@@ -36,7 +36,7 @@ useWeights = False
 batch_size = 32
 epochs = 15
 validation_split = 0.2
-margin=1.0
+margin=0.5
 
 # Data parameters
 image_height = 160

@@ -13,11 +13,11 @@ from create_siameseModel import createSiameseModel_mobilenet, contrastive_loss_w
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_mobilenet_weights'
+model_name = 'siamese_model_mobilenet_weights_margin0,75'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
-training_data_path = './data/m4_manyOne/training/'
+training_data_path = './data/m4_manyOne/training/cropped'
 validation_data_path = './data/m4_manyOne/validation/'
 
 if not os.path.exists(cp_filepath):
@@ -38,7 +38,7 @@ batch_size = 32
 epochs = 10
 validation_split = 0.2
 useWeights = True
-margin=0.5
+margin=0.75
 decay = learningRate/epochs
 
 def lr_time_decay(epoch, lr):
@@ -70,14 +70,14 @@ callbacks = [
 ]
 
 # Data parameters
-image_height = 160
-image_width = 160
+image_height = 140
+image_width = 140
 
 # ----------------------------------- DATASETS ----------------------------------- #
 
 # Creating the training and validation dataset
-train_images, train_labels = createDataset(training_data_path, (image_height, image_width))
-val_images, val_labels = createDataset(validation_data_path, (image_height, image_width))
+train_images, train_labels = createDataset(training_data_path, (image_height, image_width), preprocess_data=True)
+val_images, val_labels = createDataset(validation_data_path, (image_height, image_width), preprocess_data=True)
 
 # Creating the training image pairs and the corrsponding labels
 train_image_pairs, train_pair_labels = generate_image_pairs(train_images, train_labels)
@@ -119,8 +119,8 @@ history = siamese_model.fit(
             # validation_data=val_ds,
             [train_image_pairs[:, 0], train_image_pairs[:, 1]],
             train_pair_labels[:],
-            validation_data=([val_image_pairs[:, 0], val_image_pairs[:, 1]], val_pair_labels),
-            # validation_split=validation_split,
+            #validation_data=([val_image_pairs[:, 0], val_image_pairs[:, 1]], val_pair_labels),
+            validation_split=validation_split,
             batch_size=batch_size,
             epochs=epochs,
             callbacks=callbacks

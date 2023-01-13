@@ -129,7 +129,7 @@ def generate_image_pairs_tf(images_dataset, labels_dataset, batch_size, shuffle=
 
     return dataset
 
-def createDataset(dir, img_size, grayscale=False):
+def createDataset(dir, img_size, grayscale=False, preprocess_data=False):
     labels = []
     images = []
     image_names = []
@@ -140,7 +140,7 @@ def createDataset(dir, img_size, grayscale=False):
             label = get_label(filename)
             labels.append(label)
 
-            img = load_img(file_path, img_size, grayscale, preprocess_img=False)
+            img = load_img(file_path, img_size, grayscale, preprocess_img=preprocess_data)
             images.append(img)
             image_names.append(filename)
 

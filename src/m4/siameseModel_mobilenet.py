@@ -49,8 +49,8 @@ loss = 'triplet_loss'
 optimizer = keras.optimizers.Adam(learningRate) if loss == 'triplet_loss' else keras.optimizers.RMSprop(learningRate)
 
 # Data parameters
-image_height = 128
-image_width = 128
+image_height = 140
+image_width = 140
 
 def lr_time_decay(epoch, lr):
     return lr*1/(1+decay*epoch)

@@ -116,7 +116,6 @@ else:
 
 siamese_model = createSiameseModel_resnet(
                     (image_height, image_width, 3), 
-                    width_multiplier, depth_multiplier, 
                     dropoutRate,
                     doDataAugmentation,
                     useWeights,

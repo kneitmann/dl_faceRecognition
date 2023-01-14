@@ -4,20 +4,18 @@ import os
 import numpy as np
 
 from tensorflow import keras
-import keras.backend as k
-import tensorflow as tf
 
-from loadData import createDataset, generate_image_pairs, generate_image_pairs_tf
-from create_siameseModel import createSiameseModel_mobilenet, contrastive_loss_with_margin, contrastive_loss_with_margin_alt
+from loadData import createDataset, generate_image_pairs, generate_image_triplets
+from create_siameseModel import createSiameseModel_mobilenet, triplet_loss, contrastive_loss_with_margin_alt
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_mobilenet_weights_margin0,75'
+model_name = 'siamese_model_mobilenet_weights_frozen0,75_triplet'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
-training_data_path = './data/m4_manyOne/training/cropped'
+training_data_path = './data/m4_manyOne/training/cropped/'
 validation_data_path = './data/m4_manyOne/validation/'
 
 if not os.path.exists(cp_filepath):
@@ -26,24 +24,42 @@ if not os.path.exists(cp_filepath):
 if not os.path.exists(savedModelPath):
     os.makedirs(savedModelPath)
 
-# Dynamic hyperparameters
+# Hyperparameters
 learningRate = 0.001
 doDataAugmentation = False
 dropoutRate = 0.3
 width_multiplier = 1
 depth_multiplier = 1
 
+## Contrastive Loss parameters
+margin = 0.75
+
+## Triplet Loss parameters
+emb_size = 128
+alpha = 0.2
+
 # Training parameters
 batch_size = 32
-epochs = 10
+epochs = 30
 validation_split = 0.2
 useWeights = True
-margin=0.75
 decay = learningRate/epochs
+frozen_layers_percent = 0.75
+loss = 'triplet_loss'
+optimizer = keras.optimizers.Adam(learningRate) if loss == 'triplet_loss' else keras.optimizers.RMSprop(learningRate)
+
+# Data parameters
+image_height = 128
+image_width = 128
 
 def lr_time_decay(epoch, lr):
     return lr*1/(1+decay*epoch)
 
+losses_dict = {
+    'binary_crossentropy' : 'binary_crossentropy',
+    'contrastive_loss' : contrastive_loss_with_margin_alt(margin=margin),
+    'triplet_loss' : triplet_loss(emb_size=emb_size, alpha=alpha)
+}
 callbacks = [
     # Checkpoint callback                    
     keras.callbacks.ModelCheckpoint(
@@ -65,49 +81,52 @@ callbacks = [
             mode="auto",
             baseline=None,
             restore_best_weights=True,
-            start_from_epoch=20,
+            start_from_epoch=10,
             )
 ]
-
-# Data parameters
-image_height = 140
-image_width = 140
 
 # ----------------------------------- DATASETS ----------------------------------- #
 
 # Creating the training and validation dataset
-train_images, train_labels = createDataset(training_data_path, (image_height, image_width), preprocess_data=True)
-val_images, val_labels = createDataset(validation_data_path, (image_height, image_width), preprocess_data=True)
+train_images, train_labels = createDataset(training_data_path, (image_height, image_width), preprocess_data=(loss == 'triplet_loss'))
 
 # Creating the training image pairs and the corrsponding labels
-train_image_pairs, train_pair_labels = generate_image_pairs(train_images, train_labels)
-val_image_pairs, val_pair_labels = generate_image_pairs(val_images, val_labels)
+if loss == 'triplet_loss':
+    x_train, y_train = generate_image_triplets(train_images, train_labels)
+    
+    # Shuffling the training data
+    np.random.seed(42)
+    np.random.shuffle(x_train)
+    np.random.seed(42)
+    np.random.shuffle(y_train)
+else:
+    x_train, y_train = generate_image_pairs(train_images, train_labels)
+    
+    # Shuffling the training data
+    np.random.seed(42)
+    np.random.shuffle(x_train)
+    np.random.seed(42)
+    np.random.shuffle(y_train)
 
-# train_ds = generate_image_pairs_tf(train_images, train_labels, batch_size, True)
-# val_ds = generate_image_pairs_tf(val_images, val_labels, batch_size, True)
-
-# Shuffling the training data
-np.random.seed(42)
-np.random.shuffle(train_image_pairs)
-np.random.seed(42)
-np.random.shuffle(train_pair_labels)
-
-np.random.seed(42)
-np.random.shuffle(val_image_pairs)
-np.random.seed(42)
-np.random.shuffle(val_pair_labels)
+    x_train = [x_train[:, 0], x_train[:, 1]]
 
 # ------------------------------- CREATING AND COMPILING THE MODEL ------------------------------- #
 
-siamese_model = createSiameseModel_mobilenet((image_height, image_width, 3), width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation, useWeights)
+siamese_model = createSiameseModel_mobilenet(
+                    (image_height, image_width, 3), 
+                    width_multiplier, depth_multiplier, 
+                    dropoutRate,
+                    doDataAugmentation,
+                    useWeights,
+                    frozen_layers_percent,
+                    as_triplet=(loss=='triplet_loss')
+                    )
 
-#keras.utils.plot_model(siamese_model, to_file=f'siamese_model.png', show_layer_activations=True)
 siamese_model.summary()
 
 siamese_model.compile(
-            # loss='binary_crossentropy',
-            loss=contrastive_loss_with_margin_alt(margin=margin),
-            optimizer=keras.optimizers.RMSprop(learning_rate=learningRate),
+            loss=losses_dict[loss],
+            optimizer=optimizer,
             metrics=["accuracy"]
             )
 
@@ -115,11 +134,8 @@ siamese_model.compile(
 # ------------------------------- TRAINING THE MODEL ------------------------------- #
 
 history = siamese_model.fit(
-            # train_ds,
-            # validation_data=val_ds,
-            [train_image_pairs[:, 0], train_image_pairs[:, 1]],
-            train_pair_labels[:],
-            #validation_data=([val_image_pairs[:, 0], val_image_pairs[:, 1]], val_pair_labels),
+            x_train,
+            y_train,
             validation_split=validation_split,
             batch_size=batch_size,
             epochs=epochs,

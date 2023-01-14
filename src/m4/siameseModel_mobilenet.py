@@ -4,11 +4,9 @@ import os
 import numpy as np
 
 from tensorflow import keras
-import keras.backend as k
-import tensorflow as tf
 
-from loadData import createDataset, generate_image_pairs, generate_image_pairs_tf, generate_image_triplets
-from create_siameseModel import createSiameseModel_mobilenet, triplet_loss, contrastive_loss_with_margin, contrastive_loss_with_margin_alt
+from loadData import createDataset, generate_image_pairs, generate_image_triplets
+from create_siameseModel import createSiameseModel_mobilenet, triplet_loss, contrastive_loss_with_margin_alt
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
@@ -26,12 +24,19 @@ if not os.path.exists(cp_filepath):
 if not os.path.exists(savedModelPath):
     os.makedirs(savedModelPath)
 
-# Dynamic hyperparameters
+# Hyperparameters
 learningRate = 0.001
 doDataAugmentation = False
 dropoutRate = 0.3
 width_multiplier = 1
 depth_multiplier = 1
+
+## Contrastive Loss parameters
+margin = 0.75
+
+## Triplet Loss parameters
+emb_size = 128
+alpha = 0.2
 
 # Training parameters
 batch_size = 32
@@ -42,13 +47,6 @@ decay = learningRate/epochs
 frozen_layers_percent = 0.75
 loss = 'triplet_loss'
 optimizer = keras.optimizers.Adam(learningRate) if loss == 'triplet_loss' else keras.optimizers.RMSprop(learningRate)
-
-# Contrastive Loss parameters
-margin = 0.75
-
-# Triplet Loss parameters
-emb_size = 128
-alpha = 0.2
 
 # Data parameters
 image_height = 128

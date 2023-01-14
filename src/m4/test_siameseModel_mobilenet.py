@@ -1,7 +1,7 @@
 # ------------------------------- IMPORTS ------------------------------- #
 
 import matplotlib.pyplot as plt
-from loadData import createDataset, generate_image_pairs, get_label, load_img
+from loadData import createDataset, generate_image_pairs, get_label, load_img, generate_image_triplets
 
 from create_siameseModel import createSiameseModel_mobilenet, contrastive_loss_with_margin_alt, triplet_loss
 from test_functions import export_id_results_to_CSV, export_similarity_results_to_CSV, get_img_similarity_prediction
@@ -33,16 +33,32 @@ losses_dict = {
 
 # ------------------------------- MODEl EVALUATION ON TEST DATA ------------------------------- #
 
-siamese_model = createSiameseModel_mobilenet((image_height, image_width, 3), 1, 1, 0.3, False, weighted, frozen_layers_percent)
+siamese_model = createSiameseModel_mobilenet(
+                    (image_height, image_width, 3), 
+                    1, 1,
+                    0.3,
+                    False,
+                    weighted,
+                    frozen_layers_percent,
+                    as_triplet=(loss=='triplet_loss')
+                    )
 
 siamese_model.compile(loss=losses_dict[loss], optimizer='RMSProp', metrics=['accuracy'])
 siamese_model.load_weights(model_path + f'{model_name}.h5')
 
-x, y = createDataset(test_dir, (image_height, image_width))
-x_pairs, y_pairs = generate_image_pairs(x, y)
 
-preds = siamese_model.predict([x_pairs[:,0], x_pairs[:,1]])
-results = siamese_model.evaluate([x_pairs[:,0], x_pairs[:,1]], y_pairs)
+# Creating the test dataset
+test_images, test_labels = createDataset(test_dir, (image_height, image_width), preprocess_data=(loss == 'triplet_loss'))
+
+# Creating the test image pairs or triplets and the corrsponding labels
+if loss == 'triplet_loss':
+    x_test, y_test = generate_image_triplets(test_images, test_labels)
+else:
+    x_test, y_test = generate_image_pairs(test_images, test_labels)
+    x_test = [x_test[:, 0], x_test[:, 1]]
+
+preds = siamese_model.predict(x_test)
+results = siamese_model.evaluate(x_test, y_test)
 
 print(f'Loss: {results[0]}; Accuracy: {results[1]}')
 

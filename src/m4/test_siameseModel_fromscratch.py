@@ -1,9 +1,9 @@
 # ------------------------------- IMPORTS ------------------------------- #
 
 import matplotlib.pyplot as plt
-from loadData import createDataset, createDataframe, generate_image_pairs, load_img, get_label
+from loadData import createDataset, generate_image_pairs, load_img, get_label, generate_image_triplets
 
-from create_siameseModel import createSiameseModel_fromScratch, contrastive_loss_with_margin, contrastive_loss_with_margin_alt
+from create_siameseModel import createSiameseModel_fromScratch, contrastive_loss_with_margin_alt, triplet_loss
 from test_functions import export_similarity_results_to_CSV, export_id_results_to_CSV, get_img_similarity_prediction, compute_accuracy
 
 # ------------------------------- PARAMETERS ------------------------------- #
@@ -16,20 +16,39 @@ batch_size = 4
 image_height = 160
 image_width = 160
 
-margin=1.0
+loss = 'binary_crossentropy'
+weighted = True
+frozen_layers_percent = 0.75
+
+margin = 1.0
+emb_size = 128
+alpha = 0.2
+
+
+losses_dict = {
+    'binary_crossentropy' : 'binary_crossentropy',
+    'contrastive_loss' : contrastive_loss_with_margin_alt(margin=margin),
+    'triplet_loss' : triplet_loss(emb_size=emb_size, alpha=alpha)
+}
 
 # ------------------------------- MODEl EVALUATION ON TEST DATA ------------------------------- #
 
 siamese_model = createSiameseModel_fromScratch((image_height, image_width, 1), False)
-siamese_model.compile(loss=contrastive_loss_with_margin_alt(margin=margin), optimizer='RMSProp', metrics=['accuracy'])
-# siamese_model.compile(loss='binary_crossentropy', optimizer='RMSProp', metrics=['accuracy'])
+siamese_model.compile(loss=losses_dict[loss], optimizer='RMSProp', metrics=['accuracy'])
 siamese_model.load_weights(model_path + f'{model_name}.h5')
 
-x, y = createDataset(test_dir, (image_height, image_width), grayscale=True)
-x_pairs, y_pairs = generate_image_pairs(x, y)
+# Creating the test dataset
+test_images, test_labels = createDataset(test_dir, (image_height, image_width), preprocess_data=(loss == 'triplet_loss'))
 
-preds = siamese_model.predict([x_pairs[:,0], x_pairs[:,1]])
-results = siamese_model.evaluate([x_pairs[:,0], x_pairs[:,1]], y_pairs)
+# Creating the test image pairs or triplets and the corrsponding labels
+if loss == 'triplet_loss':
+    x_test, y_test = generate_image_triplets(test_images, test_labels)
+else:
+    x_test, y_test = generate_image_pairs(test_images, test_labels)
+    x_test = [x_test[:, 0], x_test[:, 1]]
+
+preds = siamese_model.predict(x_test)
+results = siamese_model.evaluate(x_test, y_test)
 
 print(f'Loss: {results[0]}; Accuracy: {results[1]}')
 

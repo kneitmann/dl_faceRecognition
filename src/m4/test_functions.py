@@ -53,7 +53,7 @@ def get_img_prediction_asID(model, img, test_imgs, test_labels):
         pred = round(preds[i][0], 4)
         similarity_dict[label] += pred
 
-    # Returns the label with the highest similarity score
+    # Returns the label with the highest similarity (lowest difference) score
     return min(similarity_dict, key=similarity_dict.get)
 
 # ------------------------------- RESULTS EXPORT FUNCTIONS ------------------------------- #
@@ -119,6 +119,10 @@ def export_similarity_results_to_CSV(model, model_path, test_dir, img_size, gray
 ### This function makes a person ID prediction for each image given in the test directory. ###
 ### The results will be saved in a data frame and exported as a CSV file. ###
 def export_id_results_to_CSV(model, model_path, test_dir, img_size, grayscale=False):
+    """ This function makes a person ID prediction for each image given in the test directory.
+    The results will be saved in a data frame and exported as a CSV file.
+    
+    """
     img_names = []
     img_labels = []
     preds = []

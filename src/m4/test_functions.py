@@ -121,17 +121,16 @@ def get_img_prediction_asID(model, img, test_imgs, test_labels, as_triplet=False
 
 def export_similarity_results_to_CSV(model, model_path, test_dir, img_size, grayscale=False, as_triplet=False):
     """ This function makes a similarity prediction on all possible image combinations of all given images in the test directory.
-    The results will be saved in a data frame and exported as a CSV file.
+        The results will be saved in a data frame and exported as a CSV file.
 
     Key arguments:
-        model --
-        model_path -- 
-        test_dir --
-        img_size --
-        grayscale -- (default: False) 
-        as_triplet -- (default: False)
+        model -- The model to evaluate
+        model_path -- The path where the model is saved (Results are saved in the directory)
+        test_dir -- The directory path of the test dataset
+        img_size -- The target image size
+        grayscale -- Indication whether the images should be loaded in grayscale (default: False) 
+        as_triplet -- Indication whether the model is a Triplet Loss model (default: False)
 
-    Returns:
     """
 
     img_names = []
@@ -197,11 +196,16 @@ def export_similarity_results_to_CSV(model, model_path, test_dir, img_size, gray
 
 def export_id_results_to_CSV(model, model_path, test_dir, img_size, grayscale=False, as_triplet=False):
     """ This function makes a person ID prediction for each image given in the test directory.
-    The results will be saved in a data frame and exported as a CSV file.
+        The results will be saved in a data frame and exported as a CSV file.
 
     Key arguments:
+        model -- The model to evaluate
+        model_path -- The path where the model is saved (Results are saved in the directory)
+        test_dir -- The directory path of the test dataset
+        img_size -- The target image size
+        grayscale -- Indication whether the images should be loaded in grayscale (default: False) 
+        as_triplet -- Indication whether the model is a Triplet Loss model (default: False)
 
-    Returns:
     """
     img_names = []
     img_labels = []

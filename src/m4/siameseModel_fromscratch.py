@@ -6,7 +6,7 @@ import numpy as np
 from tensorflow import keras
 
 from loadData import createDataset, generate_image_pairs, generate_image_triplets
-from create_siameseModel import createSiameseModel_fromScratch, contrastive_loss_with_margin_alt, triplet_loss
+from create_siameseModel import createSiameseModel_fromScratch, contrastive_loss_with_margin, triplet_loss
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
@@ -58,8 +58,8 @@ def lr_time_decay(epoch, lr):
 
 losses_dict = {
     'binary_crossentropy' : 'binary_crossentropy',
-    'contrastive_loss' : contrastive_loss_with_margin_alt(margin=margin),
-    'triplet_loss' : triplet_loss(emb_size=emb_size, alpha=alpha)
+    'contrastive_loss' : contrastive_loss_with_margin(margin=margin),
+    'triplet_loss' : triplet_loss(emb_size=emb_size, margin=alpha)
 }
 callbacks = [
     # Checkpoint callback                    

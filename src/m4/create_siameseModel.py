@@ -3,7 +3,6 @@
 # Tensorflow imports
 import tensorflow as tf
 from tensorflow import keras
-import keras.backend as k
 from tensorflow.keras.applications import MobileNet, ResNet50
 
 # ------------------------------- FUNCTIONS ------------------------------- #
@@ -16,57 +15,73 @@ data_augmentation = keras.Sequential(
 )
 
 def euclidean_distance(vectors):
+    """ Calculates the euclidian distance between two vectors
+
+    Key arguments:
+        vectors -- The two vectors to calculate the distance from
+    
+    Returns:
+        euclidian_distance
+    """
+
     x, y = vectors
     sum_square = tf.math.reduce_sum(tf.math.square(x - y), axis=1, keepdims=True)
     return tf.math.sqrt(tf.math.maximum(sum_square, tf.keras.backend.epsilon()))
 
-def eucl_dist_output_shape(shapes):
-    shape1, shape2 = shapes
-    return (shape1[0], 1)
+def triplet_loss(margin=0.2):
+    """ Calculates the Triplet Loss of the actual and predicted values.
+
+    Key arguments:
+        margin -- The margin value
+    
+    Returns:
+        triplet_loss value
+    """
+
+    def loss(y_true, y_pred):
+        anchor, positive, negative = y_pred[:,:128], y_pred[:,128:2*128], y_pred[:,2*128:]
+        positive_dist = tf.reduce_mean(tf.square(anchor - positive), axis=1)
+        negative_dist = tf.reduce_mean(tf.square(anchor - negative), axis=1)
+        return tf.maximum(positive_dist - negative_dist + margin, 0.)
+    return loss
 
 def contrastive_loss_with_margin(margin):
-    def contrastive_loss(y_true, y_pred):
-        square_pred = k.square(y_pred)
-        margin_square = k.square(k.maximum(margin - y_pred, 0))
-        return (y_true * square_pred + (1 - y_true) * margin_square)
-    return contrastive_loss
+    """ Calculates the Contrastive Loss of the actual and predicted values.
 
-def contrastive_loss_with_margin_alt(margin):
+    Key arguments:
+        margin -- The margin value
+    
+    Returns:
+        contrastive_loss value
+    """
+
     def contrastive_loss(y_true, y_pred):
         square_pred = tf.math.square(y_pred)
         margin_square = tf.math.square(tf.math.maximum(margin - (y_pred), 0))
         return tf.math.reduce_mean((1 - y_true) * square_pred + (y_true) * margin_square)
     return contrastive_loss
 
-def triplet_loss(alpha=0.2, emb_size=64):
-    def loss(y_true, y_pred):
-        anchor, positive, negative = y_pred[:,:emb_size], y_pred[:,emb_size:2*emb_size], y_pred[:,2*emb_size:]
-        positive_dist = tf.reduce_mean(tf.square(anchor - positive), axis=1)
-        negative_dist = tf.reduce_mean(tf.square(anchor - negative), axis=1)
-        return tf.maximum(positive_dist - negative_dist + alpha, 0.)
-    return loss
-
 def freeze_layers(model, freeze_layers_percentage):
+    """ Freezes the given percentage of layers of the model.
+
+    Key arguments:
+        model -- The model of which the layers are frozen
+        freeze_layers_percentage -- The percentage of layers that should be frozen
+    
+    """
     for i in range(int(len(model.layers)*freeze_layers_percentage)):
         model.layers[i].trainable = False
 
 # ------------------------------- CNN MODELS ------------------------------- #
 
 def MobileNet_Top(base_model, dropout_rate, as_triplet=False):
-    # top_model = keras.layers.BatchNormalization()(base_model)
-    # top_model = keras.layers.Activation('relu')(top_model)
     top_model = keras.layers.GlobalAveragePooling2D()(base_model)
-    # top_model = keras.layers.Dense(1024)(top_model)
-    # top_model = keras.layers.BatchNormalization()(top_model)
-    # top_model = keras.layers.Activation('relu')(top_model)
     top_model = keras.layers.Dropout(dropout_rate)(top_model)
 
-    # Add Dense layer
-    top_model = tf.keras.layers.Dense(256, activation='relu')(top_model)
-    # top_model = keras.layers.BatchNormalization()(top_model)
-    # top_model = keras.layers.Activation('relu')(top_model)
+    top_model = keras.layers.Dense(256, activation='relu')(top_model)
     top_model = keras.layers.Dropout(dropout_rate)(top_model)
 
+    # outputs = keras.layers.Dense(128)(top_model)
     if as_triplet:
         outputs = tf.keras.layers.Dense(128, activation='sigmoid')(top_model)
     else:
@@ -160,7 +175,7 @@ def CNN(input_shape):
 # ------------------------------- SIAMESE MODELS ------------------------------- #
 
 # https://medium.com/wicds/face-recognition-using-siamese-networks-84d6f2e54ea4
-def createSiameseModel(base_model, input_shape, doDataAugmentation=False):
+def SiameseModel(base_model, input_shape):
     inputs_A = keras.Input(shape=input_shape, name='input_1')
     inputs_B = keras.Input(shape=input_shape, name='input_2')
 
@@ -174,7 +189,7 @@ def createSiameseModel(base_model, input_shape, doDataAugmentation=False):
     return keras.Model(inputs=[inputs_A, inputs_B], outputs=outputs)
 
 
-def createSiameseModel_triplet(base_model, input_shape):
+def SiameseModel_Triplet(base_model, input_shape):
     inputs_anchor = keras.Input(shape=input_shape)
     inputs_positives = keras.Input(shape=input_shape)
     inputs_negatives = keras.Input(shape=input_shape)
@@ -183,23 +198,51 @@ def createSiameseModel_triplet(base_model, input_shape):
     positives_model_output = base_model(inputs_positives)
     negatives_model_output = base_model(inputs_negatives)
 
-    output = tf.keras.layers.concatenate([anchor_model_output, positives_model_output, negatives_model_output], axis=1)
+    outputs = keras.layers.concatenate([anchor_model_output, positives_model_output, negatives_model_output])
 
-    return keras.Model(inputs=[inputs_anchor, inputs_positives, inputs_negatives], outputs=output)
+    return keras.Model(inputs=[inputs_anchor, inputs_positives, inputs_negatives], outputs=outputs)
 
 # ------------------------------- USER FUNCTIONS FOR MODELS CREATION ------------------------------- #
 
-def createSiameseModel_fromScratch(input_shape, dropoutRate, doDataAugmentation=False, use_weights=False, freeze_percentage=1.0, as_triplet=False):
+def createSiameseModel_fromScratch(input_shape, dropoutRate, doDataAugmentation=False, as_triplet=False):
+    """ Creates a siamese model with a from scratch model as the base model.
+
+    Key arguments:
+        input_shape -- The input shape for the model
+        dropoutRate -- Dropout rate
+        doDataAugmentation -- Indication whether data augmentation should be performed (default: False)
+        as_triplet -- Indication whether the model should be created as a Triplet Loss model (default: False)
+
+    Returns:
+        siamese_model
+    """
+
     model = CNN(input_shape)
     
     if as_triplet:
-        siamese_model = createSiameseModel_triplet(model, input_shape)
+        siamese_model = SiameseModel_Triplet(model, input_shape)
     else:
-        siamese_model = createSiameseModel(model, input_shape)
+        siamese_model = SiameseModel(model, input_shape)
 
     return siamese_model
 
 def createSiameseModel_mobilenet(input_shape, width_multiplier, depth_multiplier, dropoutRate, doDataAugmentation=False, use_weights=False, freeze_percentage=1.0, as_triplet=False):
+    """ Creates a siamese model with the MobileNet model as the base model.
+
+    Key arguments:
+        input_shape -- The input shape for the model
+        width_multiplier -- MobileNet width multiplier
+        depth_multiplier -- MobileNet depth multiplier
+        dropoutRate -- Dropout rate
+        doDataAugmentation -- Indication whether data augmentation should be performed (default: False)
+        use_weights=False -- Indication whether ImageNet weights should be loaded into the base model
+        freeze_percentage -- The percentage of frozen layer in the base model (default: 1.0)
+        as_triplet -- Indication whether the model should be created as a Triplet Loss model (default: False)
+
+    Returns:
+        siamese_model
+    """
+
     model = MobileNet_WithTop(
                 input_shape,
                 width_multiplier,
@@ -212,13 +255,27 @@ def createSiameseModel_mobilenet(input_shape, width_multiplier, depth_multiplier
                 )
 
     if as_triplet:
-        siamese_model = createSiameseModel_triplet(model, input_shape)
+        siamese_model = SiameseModel_Triplet(model, input_shape)
     else:
-        siamese_model = createSiameseModel(model, input_shape)
+        siamese_model = SiameseModel(model, input_shape)
 
     return siamese_model
   
 def createSiameseModel_resnet(input_shape, dropoutRate, doDataAugmentation=False, use_weights=False, freeze_percentage=1.0, as_triplet=False):
+    """ Creates a siamese model with the ResNet50 model as the base model.
+
+    Key arguments:
+        input_shape -- The input shape for the model
+        dropoutRate -- Dropout rate
+        doDataAugmentation -- Indication whether data augmentation should be performed (default: False)
+        use_weights=False -- Indication whether ImageNet weights should be loaded into the base model
+        freeze_percentage -- The percentage of frozen layer in the base model (default: 1.0)
+        as_triplet -- Indication whether the model should be created as a Triplet Loss model (default: False)
+
+    Returns:
+        siamese_model
+    """
+
     model = ResNet_WithTop(
                 input_shape, 
                 dropoutRate,
@@ -229,8 +286,8 @@ def createSiameseModel_resnet(input_shape, dropoutRate, doDataAugmentation=False
                 )
 
     if as_triplet:
-        siamese_model = createSiameseModel_triplet(model, input_shape)
+        siamese_model = SiameseModel_Triplet(model, input_shape)
     else:
-        siamese_model = createSiameseModel(model, input_shape)
+        siamese_model = SiameseModel(model, input_shape)
 
     return siamese_model

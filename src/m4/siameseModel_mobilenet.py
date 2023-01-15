@@ -6,12 +6,12 @@ import numpy as np
 from tensorflow import keras
 
 from loadData import createDataset, generate_image_pairs, generate_image_triplets
-from create_siameseModel import MobileNet_WithTop, SiameseModel_Triplet, createSiameseModel_mobilenet, triplet_loss, contrastive_loss_with_margin, keras_triplet_loss
+from create_siameseModel import MobileNet_WithTop, SiameseModel_Triplet, createSiameseModel_mobilenet, triplet_loss, contrastive_loss_with_margin
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
 # Log parameters
-model_name = 'siamese_model_mobilenet_weights_margin1,0_frozen0,75_triplet'
+model_name = 'siamese_model_mobilenet_weights_margin0,75_frozen0,75_triplet'
 savedModelPath = f'./log/saved_models/{model_name}/'
 tb_log_dir = f'./log/tensorboard/{model_name}/'
 cp_filepath = f'./log/cps/{model_name}/'
@@ -38,6 +38,7 @@ learningRate = 0.001
 loss = 'triplet_loss'
 optimizer = keras.optimizers.Adam(learningRate) if loss == 'triplet_loss' else keras.optimizers.RMSprop(learningRate)
 margin = 1.0
+
 callbacks = [
     # Checkpoint callback                    
     keras.callbacks.ModelCheckpoint(

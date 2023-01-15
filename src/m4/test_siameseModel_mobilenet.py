@@ -73,7 +73,7 @@ else:
 # ------------------------------- EXPORTING MODEL PREDICTIONS ON TEST DATA ------------------------------- #
 
 export_id_results_to_CSV(model, model_path, test_dir, (image_height, image_width), as_triplet=as_triplet)
-export_similarity_results_to_CSV(model, model_path, test_dir, (image_height, image_width), as_triplet=as_triplet)
+# export_similarity_results_to_CSV(model, model_path, test_dir, (image_height, image_width), as_triplet=as_triplet)
 
 # ------------------------------- MODEL SINGLE PREDICTION ------------------------------- #
 

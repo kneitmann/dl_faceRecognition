@@ -81,7 +81,6 @@ def MobileNet_Top(base_model, dropout_rate, as_triplet=False):
     top_model = keras.layers.Dense(256, activation='relu')(top_model)
     top_model = keras.layers.Dropout(dropout_rate)(top_model)
 
-    # outputs = keras.layers.Dense(128)(top_model)
     if as_triplet:
         outputs = tf.keras.layers.Dense(128, activation='sigmoid')(top_model)
     else:

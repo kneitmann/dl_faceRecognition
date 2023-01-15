@@ -90,9 +90,11 @@ def get_img_prediction_asID(model, img, test_imgs, test_labels, as_triplet=False
     # Creating a dictionary of all existing labels to save the predictions in
     unique_labels = np.unique(test_labels)
     similarity_dict = {}
+    labels_count = {}
 
     for label in unique_labels:
-        similarity_dict.setdefault(label, 0)
+        similarity_dict.setdefault(label, 0)        
+        labels_count.setdefault(label, 0)
 
     # Pairing the image to compare with all other test images
     img_pairs = []
@@ -113,6 +115,11 @@ def get_img_prediction_asID(model, img, test_imgs, test_labels, as_triplet=False
         # and adding the value to the similarity dictionary
         pred = round(preds[i][0], 4)
         similarity_dict[label] += pred
+        labels_count[label] += 1
+
+    # Normalize similarity dictionary
+    for label in unique_labels:
+        similarity_dict[label] /= labels_count[label]
 
     # Returns the label with the highest similarity (lowest difference) score
     return min(similarity_dict, key=similarity_dict.get)

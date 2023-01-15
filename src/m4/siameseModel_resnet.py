@@ -8,7 +8,7 @@ import keras.backend as k
 import tensorflow as tf
 
 from loadData import createDataset, generate_image_pairs, generate_image_triplets
-from create_siameseModel import createSiameseModel_resnet, contrastive_loss_with_margin_alt, triplet_loss
+from create_siameseModel import createSiameseModel_resnet, contrastive_loss_with_margin, triplet_loss
 
 # ------------------------------- PARAMETERS ------------------------------- #
 
@@ -27,41 +27,19 @@ if not os.path.exists(savedModelPath):
     os.makedirs(savedModelPath)
 
 # Hyperparameters
-learningRate = 0.001
-doDataAugmentation = False
-dropoutRate = 0.3
-width_multiplier = 1
-depth_multiplier = 1
 
-## Contrastive Loss parameters
-margin = 0.75
-
-## Triplet Loss parameters
-emb_size = 128
-alpha = 0.2
-
-# Training parameters
-batch_size = 32
-epochs = 30
-validation_split = 0.2
-useWeights = True
-decay = learningRate/epochs
-frozen_layers_percent = 0.75
-loss = 'triplet_loss'
-optimizer = keras.optimizers.Adam(learningRate) if loss == 'triplet_loss' else keras.optimizers.RMSprop(learningRate)
-
-# Data parameters
+## Data parameters
 image_height = 128
 image_width = 128
+validation_split = 0.2
 
-def lr_time_decay(epoch, lr):
-    return lr*1/(1+decay*epoch)
-
-losses_dict = {
-    'binary_crossentropy' : 'binary_crossentropy',
-    'contrastive_loss' : contrastive_loss_with_margin_alt(margin=margin),
-    'triplet_loss' : triplet_loss(emb_size=emb_size, alpha=alpha)
-}
+## Training parameters
+batch_size = 32
+epochs = 30
+learningRate = 0.001
+loss = 'triplet_loss'
+optimizer = keras.optimizers.Adam(learningRate) if loss == 'triplet_loss' else keras.optimizers.RMSprop(learningRate)
+margin = 0.5
 callbacks = [
     # Checkpoint callback                    
     keras.callbacks.ModelCheckpoint(
@@ -72,9 +50,6 @@ callbacks = [
     # Tensorboard callback
     keras.callbacks.TensorBoard(log_dir=tb_log_dir, histogram_freq=1),
 
-    # Learning Rate decay
-    # keras.callbacks.LearningRateScheduler(lr_time_decay, verbose=1),
-    
     keras.callbacks.EarlyStopping(
             monitor="val_loss",
             min_delta=0.001,
@@ -86,6 +61,19 @@ callbacks = [
             start_from_epoch=10,
             )
 ]
+
+## Model parameters
+data_augmentation = False
+dropout_rate = 0.3
+frozen_layers_percent = 1.0
+use_weights = True
+as_triplet = loss == 'triplet_loss'
+
+losses_dict = {
+    'binary_crossentropy' : 'binary_crossentropy',
+    'contrastive_loss' : contrastive_loss_with_margin(margin=margin),
+    'triplet_loss' : triplet_loss(margin=margin)
+}
 
 # ----------------------------------- DATASETS ----------------------------------- #
 
@@ -116,9 +104,9 @@ else:
 
 siamese_model = createSiameseModel_resnet(
                     (image_height, image_width, 3), 
-                    dropoutRate,
-                    doDataAugmentation,
-                    useWeights,
+                    dropout_rate,
+                    data_augmentation,
+                    use_weights,
                     frozen_layers_percent,
                     as_triplet=(loss=='triplet_loss')
                     )
@@ -127,10 +115,10 @@ siamese_model = createSiameseModel_resnet(
 siamese_model.summary()
 
 siamese_model.compile(
-            loss=losses_dict[loss],
-            optimizer=optimizer,
-            metrics=["accuracy"]
-            )
+                loss=losses_dict[loss],
+                optimizer=optimizer,
+                metrics=["accuracy"]
+                )
 
 
 # ------------------------------- TRAINING THE MODEL ------------------------------- #
